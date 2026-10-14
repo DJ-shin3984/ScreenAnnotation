@@ -7,6 +7,7 @@ using ScreenAnnotation.Core.Input;
 using ScreenAnnotation.Core.Monitors;
 using ScreenAnnotation.Core.Settings;
 using ScreenAnnotation.Core.Windows;
+using ScreenAnnotation.Windows.Watchdog;
 
 namespace ScreenAnnotation.App;
 
@@ -30,7 +31,9 @@ public partial class App : System.Windows.Application
         _services.GetRequiredService<IMonitorService>(); // UI 스레드에서 생성: 메시지 창 + 모니터 목록 로그
         var tray = _services.GetRequiredService<TrayController>();
         tray.AddItem("창 목록 로그", () => _services.GetRequiredService<IWindowSnapshotService>().Take());
+        tray.AddItem("UI 스레드 정지 (디버그)", () => Thread.Sleep(10000));
         tray.Show();
+        _services.GetRequiredService<HeartbeatClient>().Start(SynchronizationContext.Current!);
 
         var settings = _services.GetRequiredService<Settings>();
         var gesture = HotkeyGesture.TryParse(settings.Hotkey, out var g) ? g : HotkeyGesture.Default;
