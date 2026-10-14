@@ -2,6 +2,7 @@ using System.Windows;
 using StartupEventArgs = System.Windows.StartupEventArgs;
 using ExitEventArgs = System.Windows.ExitEventArgs;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace ScreenAnnotation.App;
 
@@ -21,11 +22,13 @@ public partial class App : System.Windows.Application
         }
 
         _services = AppBootstrapper.Build();
+        _services.GetRequiredService<ILogger<App>>().LogInformation("ScreenAnnotation started");
         _services.GetRequiredService<TrayController>().Show();
     }
 
     private void OnExit(object sender, ExitEventArgs e)
     {
+        _services?.GetRequiredService<ILogger<App>>().LogInformation("ScreenAnnotation stopped");
         _services?.Dispose();
         _mutex?.Dispose();
     }
