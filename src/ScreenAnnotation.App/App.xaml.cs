@@ -1,10 +1,14 @@
+using System.IO;
 using System.Windows;
 using StartupEventArgs = System.Windows.StartupEventArgs;
 using ExitEventArgs = System.Windows.ExitEventArgs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ScreenAnnotation.Core.Input;
+using ScreenAnnotation.Core.Capture;
 using ScreenAnnotation.Core.Monitors;
+using ScreenAnnotation.Rendering;
+using ScreenAnnotation.Windows.Capture;
 using ScreenAnnotation.Core.Settings;
 using ScreenAnnotation.Core.Windows;
 using ScreenAnnotation.Windows.Watchdog;
@@ -38,13 +42,33 @@ public partial class App : System.Windows.Application
         var settings = _services.GetRequiredService<Settings>();
         var gesture = HotkeyGesture.TryParse(settings.Hotkey, out var g) ? g : HotkeyGesture.Default;
         var hotkey = _services.GetRequiredService<IHotkeyService>();
-        hotkey.HotkeyPressed += (_, _) => _services.GetRequiredService<ILogger<App>>().LogInformation("HotkeyPressed {Gesture}", gesture);
+        var capture = _services.GetRequiredService<ICaptureService>();
+        ((CaptureService)capture).Warmup(); // DXGI duplication 미리 생성: 첫 켜기 지연 단축
+        tray.AddItem("테스트 캡처 (PNG 저장)", async () =>
+        {
+            var frames = await capture.CaptureAllAsync(_services.GetRequiredService<IMonitorService>().Monitors);
+            var dir = Path.Combine(Path.GetTempPath(), "ScreenAnnotation");
+            foreach (var f in frames)
+                PngWriter.Save(f, Path.Combine(dir, $"capture_{f.Monitor.DeviceName.TrimStart('\\', '.')}.png"));
+        });
+        var session = _services.GetRequiredService<BoardSession>();
+        hotkey.HotkeyPressed += async (_, _) => await session.OnHotkeyAsync();
+        tray.AddItem("오버레이 테스트 (2초)", async () =>
+        {
+            var monitors = _services.GetRequiredService<IMonitorService>().Monitors;
+            var frames = await _services.GetRequiredService<ICaptureService>().CaptureAllAsync(monitors);
+            var host = _services.GetRequiredService<OverlayHost>();
+            host.ShowAll(frames);
+            await Task.Delay(2000);
+            host.HideAll();
+        });
         if (!hotkey.Register(gesture))
             tray.ShowBalloon("단축키 등록 실패", $"{gesture}를 다른 프로그램이 사용 중입니다. 설정에서 변경하세요.");
     }
 
     private void OnExit(object sender, ExitEventArgs e)
     {
+        _services?.GetRequiredService<BoardSession>().Stop();
         _services?.GetRequiredService<ILogger<App>>().LogInformation("ScreenAnnotation stopped");
         _services?.Dispose();
         _mutex?.Dispose();

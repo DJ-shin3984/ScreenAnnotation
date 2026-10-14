@@ -21,4 +21,13 @@ public static class OverlayNative
         var ex = global::Windows.Win32.PInvoke.GetWindowLong(h, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
         global::Windows.Win32.PInvoke.SetWindowLong(h, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE, ex | (int)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW);
     }
+
+    /// <summary>UIA ElementFromPoint 질의 순간만 마우스 투과(WS_EX_TRANSPARENT|WS_EX_LAYERED)로 바꾼다.</summary>
+    public static void SetClickThrough(nint hwnd, bool enabled)
+    {
+        var h = new HWND(hwnd);
+        const int flags = (int)(WINDOW_EX_STYLE.WS_EX_TRANSPARENT | WINDOW_EX_STYLE.WS_EX_LAYERED);
+        var ex = global::Windows.Win32.PInvoke.GetWindowLong(h, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
+        global::Windows.Win32.PInvoke.SetWindowLong(h, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE, enabled ? ex | flags : ex & ~flags);
+    }
 }
