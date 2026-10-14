@@ -4,6 +4,7 @@ using ExitEventArgs = System.Windows.ExitEventArgs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ScreenAnnotation.Core.Input;
+using ScreenAnnotation.Core.Monitors;
 using ScreenAnnotation.Core.Settings;
 using ScreenAnnotation.Core.Windows;
 
@@ -26,6 +27,7 @@ public partial class App : System.Windows.Application
 
         _services = AppBootstrapper.Build();
         _services.GetRequiredService<ILogger<App>>().LogInformation("ScreenAnnotation started");
+        _services.GetRequiredService<IMonitorService>(); // UI 스레드에서 생성: 메시지 창 + 모니터 목록 로그
         var tray = _services.GetRequiredService<TrayController>();
         tray.AddItem("창 목록 로그", () => _services.GetRequiredService<IWindowSnapshotService>().Take());
         tray.Show();
