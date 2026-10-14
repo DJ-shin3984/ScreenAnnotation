@@ -1,0 +1,10 @@
+RegisterHotKey
+UnregisterHotKey
+CreateWindowEx
+DestroyWindow
+RegisterClassEx
+DefWindowProc
+HWND_MESSAGE
+WM_HOTKEY
+HOT_KEY_MODIFIERS
+VIRTUAL_KEY
