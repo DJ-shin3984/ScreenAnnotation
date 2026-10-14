@@ -11,4 +11,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all" />
     <PackageReference Include="FluentAssertions" Version="6.12.1" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Shapes/Expected/*.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
