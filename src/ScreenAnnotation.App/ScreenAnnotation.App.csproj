@@ -21,4 +21,11 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
   </ItemGroup>
+  <!-- Watchdog은 별도 exe라 참조로는 복사되지 않는다. 빌드 후 App 출력 폴더로 복사 -->
+  <Target Name="CopyWatchdog" AfterTargets="Build">
+    <ItemGroup>
+      <WatchdogFiles Include="../ScreenAnnotation.Watchdog/bin/$(Configuration)/$(TargetFramework)/ScreenAnnotation.Watchdog.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(WatchdogFiles)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

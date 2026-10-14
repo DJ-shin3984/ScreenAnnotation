@@ -42,8 +42,11 @@ public sealed class BoardSession(
     {
         using var perf = new PerfScope(log, "Board.Start");
         _previousForeground = foreground.Capture();
-        Snapshot = snapshots.Take();
-        holder.Snapshot = Snapshot;
+        using (new PerfScope(log, "Board.Snapshot"))
+        {
+            Snapshot = snapshots.Take();
+            holder.Snapshot = Snapshot;
+        }
 
         IReadOnlyList<CapturedFrame> frames;
         try
@@ -62,8 +65,11 @@ public sealed class BoardSession(
             return;
         }
 
-        overlay.ShowAll(frames);
-        foreach (var w in overlay.Windows) probe.Attach(w);
+        using (new PerfScope(log, "Board.Show"))
+        {
+            overlay.ShowAll(frames);
+            foreach (var w in overlay.Windows) probe.Attach(w);
+        }
         heartbeat.Current = new Heartbeat(true, overlay.Handles.Select(h => (long)h).ToList());
         mode.Activate();
     }
@@ -77,8 +83,11 @@ public sealed class BoardSession(
         Snapshot = null;
         holder.Snapshot = null;
         mode.Deactivate();
-        if (!foreground.Restore(_previousForeground))
-            log.LogWarning("이전 포그라운드 창 복귀 실패 0x{Hwnd:X}", _previousForeground);
+        if (foreground.Restore(_previousForeground))
+            log.LogInformation("Board.Stop 포커스 복귀 0x{Hwnd:X}", _previousForeground);
+        else
+            log.LogWarning("Board.Stop 이전 포그라운드 창 복귀 실패 0x{Hwnd:X}", _previousForeground);
         _previousForeground = 0;
+        GC.Collect(); // 모니터별 캡처 버퍼(수십 MB, LOH)를 바로 돌려준다
     }
 }

@@ -43,9 +43,15 @@ public sealed class OverlayWindow : Window
         OverlayNative.MakeToolWindow(Handle);
     }
 
+    private WriteableBitmap? _bitmap;
+
     public void Show(CapturedFrame frame)
     {
-        _background.Source = BitmapSource.Create(frame.Width, frame.Height, 96, 96, PixelFormats.Bgra32, null, frame.Bgra, frame.Stride);
+        // 모니터당 WriteableBitmap 하나를 재사용: 켤 때마다 수십 MB를 새로 할당·복사하지 않는다.
+        if (_bitmap is null || _bitmap.PixelWidth != frame.Width || _bitmap.PixelHeight != frame.Height)
+            _bitmap = new WriteableBitmap(frame.Width, frame.Height, 96, 96, PixelFormats.Bgra32, null);
+        _bitmap.WritePixels(new Int32Rect(0, 0, frame.Width, frame.Height), frame.Bgra, frame.Stride, 0);
+        _background.Source = _bitmap;
         OverlayNative.FitToMonitor(Handle, Monitor.Bounds);
         Show();
         Activate();
@@ -54,7 +60,7 @@ public sealed class OverlayWindow : Window
     public new void Hide()
     {
         base.Hide();
-        _background.Source = null; // 캡처 메모리 해제
+        _background.Source = null; // 정지 화면은 더 보이지 않음. 비트맵 버퍼는 다음 켜기를 위해 유지
     }
 
     protected override void OnSourceInitialized(EventArgs e)

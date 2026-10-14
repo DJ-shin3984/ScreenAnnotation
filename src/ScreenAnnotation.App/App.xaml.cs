@@ -44,6 +44,7 @@ public partial class App : System.Windows.Application
         var hotkey = _services.GetRequiredService<IHotkeyService>();
         var capture = _services.GetRequiredService<ICaptureService>();
         ((CaptureService)capture).Warmup(); // DXGI duplication 미리 생성: 첫 켜기 지연 단축
+        _services.GetRequiredService<OverlayHost>().Prepare(_services.GetRequiredService<IMonitorService>().Monitors);
         tray.AddItem("테스트 캡처 (PNG 저장)", async () =>
         {
             var frames = await capture.CaptureAllAsync(_services.GetRequiredService<IMonitorService>().Monitors);

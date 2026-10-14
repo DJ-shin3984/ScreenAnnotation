@@ -20,16 +20,25 @@ public sealed class OverlayHost
 
     public IReadOnlyCollection<OverlayWindow> Windows => _windows.Values;
 
+    /// <summary>시작 시 미리 창을 만들어 첫 켜기 지연(창 생성·첫 렌더)을 줄인다.</summary>
+    public void Prepare(IReadOnlyList<MonitorInfo> monitors)
+    {
+        if (_stale) Recreate();
+        foreach (var m in monitors) Get(m);
+    }
+
     public void ShowAll(IReadOnlyList<CapturedFrame> frames)
     {
         if (_stale) Recreate();
-        foreach (var frame in frames)
-        {
-            if (!_windows.TryGetValue(frame.Monitor.Key, out var w))
-                _windows[frame.Monitor.Key] = w = new OverlayWindow(frame.Monitor);
-            w.Show(frame);
-        }
+        foreach (var frame in frames) Get(frame.Monitor).Show(frame);
         IsVisible = true;
+    }
+
+    private OverlayWindow Get(MonitorInfo monitor)
+    {
+        if (!_windows.TryGetValue(monitor.Key, out var w))
+            _windows[monitor.Key] = w = new OverlayWindow(monitor);
+        return w;
     }
 
     public void HideAll()
