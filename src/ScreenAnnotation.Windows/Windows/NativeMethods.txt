@@ -1,0 +1,14 @@
+EnumWindows
+IsWindowVisible
+IsIconic
+GetWindowText
+GetWindowTextLength
+GetWindowThreadProcessId
+GetWindowLong
+GetWindowRect
+DwmGetWindowAttribute
+OpenProcess
+OpenProcessToken
+GetTokenInformation
+WINDOW_EX_STYLE
+TOKEN_ELEVATION
