@@ -41,6 +41,9 @@ public sealed class AnnotationStore
         return old;
     }
 
+    /// <summary>보드를 버릴 때(끄기). Undo 대상이 아니므로 명령을 거치지 않는 유일한 변경.</summary>
+    public void DiscardAll() => Clear();
+
     internal IReadOnlyList<Annotation> Clear()
     {
         var removed = _byId.Values.ToList();
