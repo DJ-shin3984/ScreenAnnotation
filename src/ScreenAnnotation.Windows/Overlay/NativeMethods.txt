@@ -1,0 +1,6 @@
+SetWindowPos
+GetWindowLong
+SetWindowLong
+WINDOW_EX_STYLE
+SET_WINDOW_POS_FLAGS
+HWND_TOPMOST
