@@ -1,8 +1,11 @@
 using Microsoft.Extensions.Logging;
+using ScreenAnnotation.Core.Annotations;
 using ScreenAnnotation.Core.Capture;
 using ScreenAnnotation.Core.Diagnostics;
 using ScreenAnnotation.Core.Monitors;
 using ScreenAnnotation.Core.Session;
+using ScreenAnnotation.Core.Settings;
+using ScreenAnnotation.Core.Tools;
 using ScreenAnnotation.Core.Watchdog;
 using ScreenAnnotation.Core.Windows;
 using ScreenAnnotation.Rendering;
@@ -21,9 +24,26 @@ public sealed class BoardSession(
     StaticHeartbeatSource heartbeat,
     ElementProbe probe,
     ModeHolder holder,
+    AnnotationStore store,
+    HistoryManager history,
+    ToolState tools,
+    Settings settings,
+    ILoggerFactory loggerFactory,
     ILogger<BoardSession> log)
 {
     private nint _previousForeground;
+    private readonly Dictionary<OverlayWindow, (WpfOverlayRenderer Renderer, BoardInput Input)> _boards = [];
+
+    private (WpfOverlayRenderer Renderer, BoardInput Input) Board(OverlayWindow w)
+    {
+        if (!_boards.TryGetValue(w, out var b))
+        {
+            var renderer = new WpfOverlayRenderer(w, store);
+            var input = new BoardInput(w, renderer, tools, store, history, settings, loggerFactory.CreateLogger<BoardInput>());
+            _boards[w] = b = (renderer, input);
+        }
+        return b;
+    }
 
     public ModeController Mode => mode;
     public WindowSnapshot? Snapshot { get; private set; }
@@ -68,7 +88,14 @@ public sealed class BoardSession(
         using (new PerfScope(log, "Board.Show"))
         {
             overlay.ShowAll(frames);
-            foreach (var w in overlay.Windows) probe.Attach(w);
+            foreach (var w in overlay.Windows)
+            {
+                var (renderer, _) = Board(w);
+                renderer.InvalidateAll();
+                renderer.Start();
+                probe.Attach(w);
+            }
+            tools.Reset();
         }
         heartbeat.Current = new Heartbeat(true, overlay.Handles.Select(h => (long)h).ToList());
         mode.Activate();
@@ -78,7 +105,14 @@ public sealed class BoardSession(
     public void Stop()
     {
         probe.Reset();
+        foreach (var (renderer, input) in _boards.Values)
+        {
+            input.Reset();
+            renderer.Stop();
+        }
         overlay.HideAll();
+        history.Clear();
+        store.DiscardAll(); // 보드는 끄면 버린다 (저장은 T50/T51)
         heartbeat.Current = Heartbeat.Inactive;
         Snapshot = null;
         holder.Snapshot = null;
