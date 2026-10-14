@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>ScreenAnnotation</AssemblyName>
+    <!-- WinForms 분석기: DPI는 WPF용 매니페스트(PerMonitorV2)로 설정한다 -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../ScreenAnnotation.Core/ScreenAnnotation.Core.csproj" />
+    <ProjectReference Include="../ScreenAnnotation.Windows/ScreenAnnotation.Windows.csproj" />
+    <ProjectReference Include="../ScreenAnnotation.Rendering/ScreenAnnotation.Rendering.csproj" />
+    <ProjectReference Include="../ScreenAnnotation.Recognition/ScreenAnnotation.Recognition.csproj" />
+    <ProjectReference Include="../ScreenAnnotation.Storage/ScreenAnnotation.Storage.csproj" />
+    <ProjectReference Include="../ScreenAnnotation.Watchdog/ScreenAnnotation.Watchdog.csproj" ReferenceOutputAssembly="false" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+  </ItemGroup>
+</Project>

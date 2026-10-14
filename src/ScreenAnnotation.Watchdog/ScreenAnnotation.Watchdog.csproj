@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../ScreenAnnotation.Core/ScreenAnnotation.Core.csproj" />
+    <ProjectReference Include="../ScreenAnnotation.Windows/ScreenAnnotation.Windows.csproj" />
+  </ItemGroup>
+</Project>

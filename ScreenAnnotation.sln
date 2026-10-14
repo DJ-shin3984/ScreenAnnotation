@@ -1,0 +1,92 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{01D7F467-EFF7-4E47-961A-84147FE9CACD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotation.App", "src\ScreenAnnotation.App\ScreenAnnotation.App.csproj", "{A3534445-8B5A-45A7-9699-23164B1B7D07}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotation.Core", "src\ScreenAnnotation.Core\ScreenAnnotation.Core.csproj", "{13D15577-91B6-42AB-A492-4C917FA8D1BC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotation.Recognition", "src\ScreenAnnotation.Recognition\ScreenAnnotation.Recognition.csproj", "{0D68D2EF-480A-4462-A882-583C9C9EDA05}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotation.Rendering", "src\ScreenAnnotation.Rendering\ScreenAnnotation.Rendering.csproj", "{B9CCB160-0239-4630-BF86-DEF739DDA8E9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotation.Storage", "src\ScreenAnnotation.Storage\ScreenAnnotation.Storage.csproj", "{EDE117B4-1AC0-425B-AF9B-299C5C288852}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotation.Watchdog", "src\ScreenAnnotation.Watchdog\ScreenAnnotation.Watchdog.csproj", "{ACCD3D53-ACAE-4E71-A0A6-D4D4D0690285}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotation.Windows", "src\ScreenAnnotation.Windows\ScreenAnnotation.Windows.csproj", "{659BD1F8-079D-40FA-913F-F7F690C57461}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{4906F7A8-1C9B-40F7-AEA1-BF3326656FFD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotation.Core.Tests", "tests\ScreenAnnotation.Core.Tests\ScreenAnnotation.Core.Tests.csproj", "{58770CF1-C1D6-41CD-9B0F-26A24B2CFA45}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotation.Rendering.Tests", "tests\ScreenAnnotation.Rendering.Tests\ScreenAnnotation.Rendering.Tests.csproj", "{58AA993B-724D-495F-8C6F-1A527AC1E944}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotation.Windows.IntegrationTests", "tests\ScreenAnnotation.Windows.IntegrationTests\ScreenAnnotation.Windows.IntegrationTests.csproj", "{D3165F44-FF78-4231-A5D1-724CD60B9FF2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A3534445-8B5A-45A7-9699-23164B1B7D07}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3534445-8B5A-45A7-9699-23164B1B7D07}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3534445-8B5A-45A7-9699-23164B1B7D07}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3534445-8B5A-45A7-9699-23164B1B7D07}.Release|Any CPU.Build.0 = Release|Any CPU
+		{13D15577-91B6-42AB-A492-4C917FA8D1BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{13D15577-91B6-42AB-A492-4C917FA8D1BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{13D15577-91B6-42AB-A492-4C917FA8D1BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{13D15577-91B6-42AB-A492-4C917FA8D1BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0D68D2EF-480A-4462-A882-583C9C9EDA05}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0D68D2EF-480A-4462-A882-583C9C9EDA05}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0D68D2EF-480A-4462-A882-583C9C9EDA05}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0D68D2EF-480A-4462-A882-583C9C9EDA05}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9CCB160-0239-4630-BF86-DEF739DDA8E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9CCB160-0239-4630-BF86-DEF739DDA8E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9CCB160-0239-4630-BF86-DEF739DDA8E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9CCB160-0239-4630-BF86-DEF739DDA8E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EDE117B4-1AC0-425B-AF9B-299C5C288852}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDE117B4-1AC0-425B-AF9B-299C5C288852}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDE117B4-1AC0-425B-AF9B-299C5C288852}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDE117B4-1AC0-425B-AF9B-299C5C288852}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ACCD3D53-ACAE-4E71-A0A6-D4D4D0690285}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACCD3D53-ACAE-4E71-A0A6-D4D4D0690285}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ACCD3D53-ACAE-4E71-A0A6-D4D4D0690285}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ACCD3D53-ACAE-4E71-A0A6-D4D4D0690285}.Release|Any CPU.Build.0 = Release|Any CPU
+		{659BD1F8-079D-40FA-913F-F7F690C57461}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{659BD1F8-079D-40FA-913F-F7F690C57461}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{659BD1F8-079D-40FA-913F-F7F690C57461}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{659BD1F8-079D-40FA-913F-F7F690C57461}.Release|Any CPU.Build.0 = Release|Any CPU
+		{58770CF1-C1D6-41CD-9B0F-26A24B2CFA45}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58770CF1-C1D6-41CD-9B0F-26A24B2CFA45}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58770CF1-C1D6-41CD-9B0F-26A24B2CFA45}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58770CF1-C1D6-41CD-9B0F-26A24B2CFA45}.Release|Any CPU.Build.0 = Release|Any CPU
+		{58AA993B-724D-495F-8C6F-1A527AC1E944}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58AA993B-724D-495F-8C6F-1A527AC1E944}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58AA993B-724D-495F-8C6F-1A527AC1E944}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58AA993B-724D-495F-8C6F-1A527AC1E944}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3165F44-FF78-4231-A5D1-724CD60B9FF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3165F44-FF78-4231-A5D1-724CD60B9FF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3165F44-FF78-4231-A5D1-724CD60B9FF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3165F44-FF78-4231-A5D1-724CD60B9FF2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A3534445-8B5A-45A7-9699-23164B1B7D07} = {01D7F467-EFF7-4E47-961A-84147FE9CACD}
+		{13D15577-91B6-42AB-A492-4C917FA8D1BC} = {01D7F467-EFF7-4E47-961A-84147FE9CACD}
+		{0D68D2EF-480A-4462-A882-583C9C9EDA05} = {01D7F467-EFF7-4E47-961A-84147FE9CACD}
+		{B9CCB160-0239-4630-BF86-DEF739DDA8E9} = {01D7F467-EFF7-4E47-961A-84147FE9CACD}
+		{EDE117B4-1AC0-425B-AF9B-299C5C288852} = {01D7F467-EFF7-4E47-961A-84147FE9CACD}
+		{ACCD3D53-ACAE-4E71-A0A6-D4D4D0690285} = {01D7F467-EFF7-4E47-961A-84147FE9CACD}
+		{659BD1F8-079D-40FA-913F-F7F690C57461} = {01D7F467-EFF7-4E47-961A-84147FE9CACD}
+		{58770CF1-C1D6-41CD-9B0F-26A24B2CFA45} = {4906F7A8-1C9B-40F7-AEA1-BF3326656FFD}
+		{58AA993B-724D-495F-8C6F-1A527AC1E944} = {4906F7A8-1C9B-40F7-AEA1-BF3326656FFD}
+		{D3165F44-FF78-4231-A5D1-724CD60B9FF2} = {4906F7A8-1C9B-40F7-AEA1-BF3326656FFD}
+	EndGlobalSection
+EndGlobal
