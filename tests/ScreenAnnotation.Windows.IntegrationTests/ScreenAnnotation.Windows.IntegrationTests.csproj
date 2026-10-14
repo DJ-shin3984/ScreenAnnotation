@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/ScreenAnnotation.Windows/ScreenAnnotation.Windows.csproj" />
+    <ProjectReference Include="../../src/ScreenAnnotation.Recognition/ScreenAnnotation.Recognition.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all" />
