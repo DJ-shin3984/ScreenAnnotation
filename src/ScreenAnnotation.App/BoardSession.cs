@@ -35,6 +35,7 @@ public sealed class BoardSession(
     private nint _previousForeground;
     private readonly Dictionary<OverlayWindow, (WpfOverlayRenderer Renderer, BoardInput Input)> _boards = [];
     private readonly Dictionary<string, CapturedFrame> _frames = [];
+    private CloseConfirmWindow? _dialog; // 끄기 확인창이 떠 있는 동안만 non-null
 
     private (WpfOverlayRenderer Renderer, BoardInput Input) Board(OverlayWindow w)
     {
@@ -45,7 +46,7 @@ public sealed class BoardSession(
             var input = new BoardInput(w, renderer, tools, store, history, text, settings, loggerFactory.CreateLogger<BoardInput>());
             input.SaveRequested += SaveAll;
             input.CopyRequested += () => Copy(w);
-            input.CloseRequested += () => { if (mode.OnHotkey() == HotkeyAction.Stop) Stop(); };
+            input.CloseRequested += () => _ = OnHotkeyAsync();
             _boards[w] = b = (renderer, input);
         }
         return b;
@@ -58,10 +59,40 @@ public sealed class BoardSession(
     public async Task OnHotkeyAsync()
     {
         log.LogInformation("핫키 수신 mode={Mode}", mode.Mode);
+        if (_dialog is not null)
+        {
+            _dialog.Choose(CloseChoice.Discard); // 확인창에서 한 번 더 → 버리고 끔
+            return;
+        }
+        if (mode.Mode == Core.Session.Mode.Active && store.Count > 0 && !ConfirmClose())
+            return; // 계속 판서
+
         switch (mode.OnHotkey())
         {
             case HotkeyAction.Start: await StartAsync(); break;
             case HotkeyAction.Stop: Stop(); break;
+        }
+    }
+
+    /// <summary>커서가 있는 모니터 가운데에 확인창. true면 끈다(저장은 여기서 끝냄), false면 계속 판서.</summary>
+    private bool ConfirmClose()
+    {
+        foreach (var (_, input) in _boards.Values) { input.Reset(); input.Suspended = true; }
+        try
+        {
+            var cursor = System.Windows.Forms.Cursor.Position;
+            var monitor = CoordinateService.FindMonitor(monitors.Monitors, new PointPx(cursor.X, cursor.Y));
+            var owner = overlay.Windows.FirstOrDefault(w => w.Monitor.Key == monitor?.Key) ?? overlay.Windows.First();
+
+            var choice = CloseConfirmWindow.Show(owner, out _dialog);
+            _dialog = null;
+            if (choice == CloseChoice.Save) SaveAll();
+            return choice != CloseChoice.Continue;
+        }
+        finally
+        {
+            _dialog = null;
+            foreach (var (_, input) in _boards.Values) input.Suspended = false;
         }
     }
 
