@@ -54,6 +54,7 @@ public sealed class BoardInput : IDisposable
     private Point _lastErase;
     private long _lastMoveTick;
     private int _hiddenDrawn;
+    private bool _textMode; // T 또는 툴바 "텍스트": 다음 클릭 자리에 입력창
 
     public event Action? SaveRequested;
     public event Action? CopyRequested;
@@ -100,6 +101,7 @@ public sealed class BoardInput : IDisposable
         window.Root.Children.Add(_layer);
 
         _menu.Selected += OnMenuSelected;
+        _tools.Changed += () => { if (_textMode) ExitTextMode(); };
         _tools.Changed += UpdateHud;
         UpdateHud();
 
@@ -138,6 +140,13 @@ public sealed class BoardInput : IDisposable
             if (!_text.Contains(ScreenPos(e))) { _text.Commit(); e.Handled = true; }
             return;
         }
+        if (_textMode)
+        {
+            ExitTextMode();
+            if (!_text.TryBeginEdit(p, out _)) _text.Begin(p, _tools.Color, TextEditor.FontSizeFor(_tools.Width));
+            e.Handled = true;
+            return;
+        }
         if (Ctrl) return; // Ctrl+클릭은 요소 인식(ElementProbe) 몫
         if (e.ClickCount == 2)
         {
@@ -162,6 +171,8 @@ public sealed class BoardInput : IDisposable
                 _renderer.NotifyEphemeralChanged();
                 break;
             case Tool.Pen when _tools.PenVariant == PenVariant.Laser:
+                _renderer.Laser.Color = _tools.Color;
+                _renderer.Laser.Width = ContentWidth;
                 _renderer.Laser.Add(p, Now);
                 _renderer.NotifyEphemeralChanged();
                 break;
@@ -211,6 +222,8 @@ public sealed class BoardInput : IDisposable
                 if (StrokeBuilder.ShouldAppend(_ephemeral.Points, p)) { _ephemeral.Points.Add(p); _renderer.NotifyEphemeralChanged(); }
                 break;
             case Tool.Pen when _tools.PenVariant == PenVariant.Laser:
+                _renderer.Laser.Color = _tools.Color;
+                _renderer.Laser.Width = ContentWidth;
                 _renderer.Laser.Add(p, Now);
                 _renderer.NotifyEphemeralChanged();
                 break;
@@ -311,14 +324,26 @@ public sealed class BoardInput : IDisposable
             EraseAt(a + (b - a) * (i / (double)n));
     }
 
+    private void EnterTextMode()
+    {
+        _textMode = true;
+        _window.Cursor = System.Windows.Input.Cursors.IBeam;
+        _hud.Update("텍스트", "클릭한 자리에 입력", (int)TextEditor.FontSizeFor(_tools.Width), _tools.Color);
+    }
+
+    private void ExitTextMode()
+    {
+        if (!_textMode) return;
+        _textMode = false;
+        _window.Cursor = System.Windows.Input.Cursors.Arrow;
+        UpdateHud();
+    }
+
     private void OnToolbar(ToolbarAction a)
     {
         switch (a)
         {
-            case ToolbarAction.Text:
-                _text.Begin(_window.View.ToContent(Host.Width / 2, Host.Height / 2) is var (cx, cy) ? new Point(cx, cy) : default,
-                    _tools.Color, TextEditor.FontSizeFor(_tools.Width));
-                break;
+            case ToolbarAction.Text: EnterTextMode(); break;
             case ToolbarAction.Undo: if (_history.Undo()) _renderer.InvalidateAll(); break;
             case ToolbarAction.Redo: if (_history.Redo()) _renderer.InvalidateAll(); break;
             case ToolbarAction.Save: SaveRequested?.Invoke(); break;
@@ -355,6 +380,7 @@ public sealed class BoardInput : IDisposable
     {
         if (Suspended) { e.Handled = true; return; }
         e.Handled = true;
+        if (_text.IsEditing) { _text.AdjustFontSize(e.Delta); return; }
         if (Ctrl)
         {
             var sp = ScreenPos(e);
@@ -412,9 +438,9 @@ public sealed class BoardInput : IDisposable
                 _window.View.Reset(); _window.ApplyView(); break;
             case Key.Tab when Shift: _tools.NextVariant(); break;
             case Key.Tab: _tools.NextTool(); break;
-            case Key.Escape: Reset(); _tools.Reset(); break;
+            case Key.Escape: ExitTextMode(); Reset(); _tools.Reset(); break;
             case Key.E: _tools.ToggleEraser(); break;
-            case Key.T: _text.Begin(Mouse.GetPosition(_window.Viewport), _tools.Color, TextEditor.FontSizeFor(_tools.Width)); break;
+            case Key.T: if (_textMode) ExitTextMode(); else EnterTextMode(); break;
             case Key.S when Ctrl: SaveRequested?.Invoke(); break;
             case Key.C when Ctrl: CopyRequested?.Invoke(); break;
             case Key.Z when Ctrl: if (_history.Undo()) _renderer.InvalidateAll(); break;

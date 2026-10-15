@@ -63,6 +63,9 @@ public sealed class LaserTrail
     private readonly List<Sample> _samples = [];
 
     public TimeSpan Tail { get; } = TimeSpan.FromSeconds(0.3);
+    /// <summary>현재 펜 색·굵기 (입력이 매번 갱신).</summary>
+    public string Color { get; set; } = "#FF3B30";
+    public double Width { get; set; } = 4;
     public IReadOnlyList<Sample> Samples => _samples;
     public Point? Head => _samples.Count > 0 ? _samples[^1].Point : null;
 

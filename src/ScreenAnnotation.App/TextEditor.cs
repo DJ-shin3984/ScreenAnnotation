@@ -66,6 +66,14 @@ public sealed class TextEditor
     /// <summary>굵기 단계에 비례한 글자 크기.</summary>
     public static double FontSizeFor(int width) => Math.Clamp(12 + width * 2, 12, 96);
 
+    /// <summary>입력 중 휠: 글자 크기 조절. 확정되는 TextAnnotation도 이 크기를 쓴다.</summary>
+    public void AdjustFontSize(int wheelDelta)
+    {
+        if (!IsEditing) return;
+        _box.FontSize = Math.Clamp(_box.FontSize * (wheelDelta > 0 ? 1.15 : 1 / 1.15), 8, 240);
+        _box.Focus();
+    }
+
     public void Begin(Point contentPx, string colorHex, double fontSizePx)
     {
         _original = null;
@@ -152,6 +160,7 @@ public sealed class TextEditor
         Canvas.SetTop(_box, at.Y);
         _box.Foreground = ColorHex.Brush(colorHex);
         _box.FontSize = fontSize;
+        _box.CaretBrush = _box.Foreground; // 깜박이는 커서는 글자색
         _box.Text = text;
         _box.Visibility = Visibility.Visible;
         _layer.IsHitTestVisible = true;

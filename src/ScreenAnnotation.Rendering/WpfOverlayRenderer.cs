@@ -110,8 +110,8 @@ public sealed class WpfOverlayRenderer : IOverlayRenderer
     {
         var samples = Laser.Samples;
         if (samples.Count == 0) return;
-        var color = _liveStroke?.Color ?? "#FF3B30";
-        var width = _liveStroke?.Width ?? 4;
+        var color = Laser.Color;
+        var width = Laser.Width;
         for (var i = 1; i < samples.Count; i++)
         {
             var t = (double)i / samples.Count;

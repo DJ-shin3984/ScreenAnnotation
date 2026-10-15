@@ -90,8 +90,8 @@ public sealed class ToolbarControl : UserControl
         root.Children.Add(panel);
         Content = root;
 
-        PreviewMouseDown += (_, e) => e.Handled = true; // 호스트가 획을 시작하지 않게
-        PreviewMouseUp += (_, e) => e.Handled = true;
+        // Preview 이벤트를 여기서 Handled 처리하면 자식 버튼의 MouseLeftButtonUp이 아예 안 올라온다.
+        // 호스트(BoardInput)가 IsMouseOver로 툴바 위 클릭을 건너뛴다.
         Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
     }
 

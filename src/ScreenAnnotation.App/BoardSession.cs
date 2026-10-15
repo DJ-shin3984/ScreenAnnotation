@@ -64,8 +64,7 @@ public sealed class BoardSession(
             _dialog.Choose(CloseChoice.Discard); // 확인창에서 한 번 더 → 버리고 끔
             return;
         }
-        if (mode.Mode == Core.Session.Mode.Active && store.Count > 0 && !ConfirmClose())
-            return; // 계속 판서
+        // 사용자 결정(2026-10-15): 핫키로 끌 때 저장 여부를 묻지 않고 바로 끈다. 저장은 Ctrl+S/툴바. 확인창은 툴바 X에서만.
 
         switch (mode.OnHotkey())
         {
