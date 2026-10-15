@@ -46,7 +46,12 @@ public sealed class BoardSession(
             var input = new BoardInput(w, renderer, tools, store, history, text, settingsStore, loggerFactory.CreateLogger<BoardInput>());
             input.SaveRequested += SaveAll;
             input.CopyRequested += () => Copy(w);
-            input.CloseRequested += () => _ = OnHotkeyAsync();
+            input.CloseRequested += () =>
+            {
+                // 툴바 X: 판서가 있으면 저장/버리기/계속을 묻는다 (핫키는 묻지 않음)
+                if (mode.Mode == Core.Session.Mode.Active && store.Count > 0 && !ConfirmClose()) return;
+                _ = OnHotkeyAsync();
+            };
             _boards[w] = b = (renderer, input);
         }
         return b;
