@@ -1,3 +1,4 @@
+using System.IO;
 using Microsoft.Extensions.Logging;
 using ScreenAnnotation.Core.Annotations;
 using ScreenAnnotation.Core.Capture;
@@ -9,6 +10,7 @@ using ScreenAnnotation.Core.Tools;
 using ScreenAnnotation.Core.Watchdog;
 using ScreenAnnotation.Core.Windows;
 using ScreenAnnotation.Rendering;
+using ScreenAnnotation.Storage;
 using ScreenAnnotation.Rendering.Export;
 using ScreenAnnotation.Windows.Focus;
 
@@ -29,6 +31,7 @@ public sealed class BoardSession(
     HistoryManager history,
     ToolState tools,
     SettingsStore settingsStore,
+    SettingsRepository settingsRepository,
     ILoggerFactory loggerFactory,
     ILogger<BoardSession> log)
 {
@@ -149,19 +152,62 @@ public sealed class BoardSession(
     }
 
     /// <summary>Ctrl+S: 모니터별 정지 화면 + 판서 합성 PNG를 설정 폴더에 저장.</summary>
+    /// <summary>Ctrl+S / 툴바 저장: 저장 위치를 묻는다. 커서 모니터는 고른 이름 그대로, 다른 모니터는 _2, _3 붙여 저장.</summary>
     public void SaveAll()
     {
+        if (_boards.Count == 0) return;
+        var cursorWindow = WindowUnderCursor();
+        string? chosen;
+        foreach (var (_, input) in _boards.Values) { input.Reset(); input.Suspended = true; }
+        try
+        {
+            var dir = settingsStore.Current.SavePath;
+            Directory.CreateDirectory(dir);
+            var dlg = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "판서 저장",
+                Filter = "PNG 이미지 (*.png)|*.png",
+                DefaultExt = ".png",
+                AddExtension = true,
+                InitialDirectory = dir,
+                FileName = $"ScreenAnnotation_{DateTime.Now:yyyyMMdd_HHmmss}.png",
+            };
+            chosen = dlg.ShowDialog(cursorWindow) == true ? dlg.FileName : null;
+        }
+        finally
+        {
+            foreach (var (_, input) in _boards.Values) input.Suspended = false;
+        }
+        if (chosen is null) return;
+
         using var perf = new PerfScope(log, "Export.Save");
-        var now = DateTime.Now;
-        var i = 0;
-        foreach (var (w, (renderer, input)) in _boards)
+        var folder = Path.GetDirectoryName(chosen)!;
+        var stem = Path.GetFileNameWithoutExtension(chosen);
+        var n = 1;
+        foreach (var (w, (renderer, input)) in _boards.OrderBy(b => b.Key == cursorWindow ? 0 : 1))
         {
             if (!_frames.TryGetValue(w.Monitor.Key, out var frame)) continue;
             var img = BoardExporter.Compose(frame, store.ForMonitor(w.Monitor.Key), renderer.Ephemeral.Strokes);
-            var path = BoardExporter.SavePng(img, settingsStore.Current.SavePath, i++, now);
+            var path = n == 1 ? chosen : Path.Combine(folder, $"{stem}_{n}.png");
+            n++;
+            var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
+            enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(img));
+            using (var fs = File.Create(path)) enc.Save(fs);
             log.LogInformation("저장 {Path}", path);
             input.Flash("저장됨");
         }
+        if (folder != settingsStore.Current.SavePath)
+        {
+            settingsStore.Update(c => c with { SavePath = folder }); // 마지막 저장 폴더 기억
+            settingsRepository.Save(settingsStore.Current);
+        }
+    }
+
+    private OverlayWindow WindowUnderCursor()
+    {
+        var cursor = System.Windows.Forms.Cursor.Position;
+        var monitor = CoordinateService.FindMonitor(monitors.Monitors, new PointPx(cursor.X, cursor.Y));
+        return overlay.Windows.FirstOrDefault(w => w.Monitor.Key == monitor?.Key) ?? overlay.Windows.First();
     }
 
     /// <summary>Ctrl+C: 키를 받은 모니터의 합성본을 클립보드로.</summary>
@@ -170,7 +216,7 @@ public sealed class BoardSession(
         if (!_frames.TryGetValue(w.Monitor.Key, out var frame) || !_boards.TryGetValue(w, out var b)) return;
         using var perf = new PerfScope(log, "Export.Copy");
         var img = BoardExporter.Compose(frame, store.ForMonitor(w.Monitor.Key), b.Renderer.Ephemeral.Strokes);
-        try { BoardExporter.CopyToClipboard(img); b.Input.Flash("복사됨"); }
+        try { ClipboardImage.Set(img); b.Input.Flash("복사됨"); }
         catch (Exception ex) { log.LogWarning(ex, "클립보드 복사 실패"); b.Input.Flash("복사 실패"); }
     }
 
