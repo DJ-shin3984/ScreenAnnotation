@@ -29,6 +29,10 @@ public sealed class TextEditor
     private readonly TextBox _box;
     private TextAnnotation? _original; // 재편집 중이면 원본
 
+    // 굵은 자체 캐럿: WPF TextBox의 캐럿 두께는 시스템 설정이라 직접 그린다 (글자색, 530ms 깜박임)
+    private readonly System.Windows.Shapes.Rectangle _caret = new() { IsHitTestVisible = false, Visibility = Visibility.Collapsed };
+    private readonly System.Windows.Threading.DispatcherTimer _blink = new() { Interval = TimeSpan.FromMilliseconds(530) };
+
     public TextEditor(OverlayWindow window, AnnotationStore store, HistoryManager history, Action<RectPx> invalidate)
     {
         _window = window;
@@ -52,6 +56,10 @@ public sealed class TextEditor
         };
         _box.PreviewKeyDown += OnKeyDown;
         _layer.Children.Add(_box);
+        _layer.Children.Add(_caret);
+        _box.SelectionChanged += (_, _) => PlaceCaret();
+        _box.LayoutUpdated += (_, _) => { if (IsEditing) PlaceCaret(); };
+        _blink.Tick += (_, _) => _caret.Visibility = _caret.Visibility == Visibility.Visible ? Visibility.Hidden : Visibility.Visible;
         _window.Viewport.Children.Add(_layer); // content px: 확대를 따라간다
     }
 
@@ -67,6 +75,14 @@ public sealed class TextEditor
     public static double FontSizeFor(int width) => Math.Clamp(12 + width * 2, 12, 96);
 
     /// <summary>입력 중 휠: 글자 크기 조절. 확정되는 TextAnnotation도 이 크기를 쓴다.</summary>
+    /// <summary>입력 중 색 변경 (팔레트·숫자 키).</summary>
+    public void SetColor(string colorHex)
+    {
+        if (!IsEditing) return;
+        _box.Foreground = ColorHex.Brush(colorHex);
+        _caret.Fill = _box.Foreground;
+    }
+
     public void AdjustFontSize(int wheelDelta)
     {
         if (!IsEditing) return;
@@ -160,17 +176,36 @@ public sealed class TextEditor
         Canvas.SetTop(_box, at.Y);
         _box.Foreground = ColorHex.Brush(colorHex);
         _box.FontSize = fontSize;
-        _box.CaretBrush = _box.Foreground; // 깜박이는 커서는 글자색
+        _box.CaretBrush = Brushes.Transparent; // 기본 캐럿 숨기고 굵은 자체 캐럿을 그린다
+        _caret.Fill = _box.Foreground;
         _box.Text = text;
         _box.Visibility = Visibility.Visible;
         _layer.IsHitTestVisible = true;
         _box.Focus();
         Keyboard.Focus(_box);
         _box.CaretIndex = text.Length;
+        _caret.Visibility = Visibility.Visible;
+        _blink.Start();
+        PlaceCaret();
+    }
+
+    private void PlaceCaret()
+    {
+        if (!IsEditing) return;
+        var r = _box.GetRectFromCharacterIndex(_box.CaretIndex);
+        if (r.IsEmpty) return;
+        _caret.Width = Math.Max(3, _box.FontSize / 9);
+        _caret.Height = r.Height;
+        Canvas.SetLeft(_caret, Canvas.GetLeft(_box) + r.X);
+        Canvas.SetTop(_caret, Canvas.GetTop(_box) + r.Y);
+        _caret.Visibility = Visibility.Visible; // 입력·이동 직후엔 항상 보이게 (깜박임 리셋)
+        _blink.Stop(); _blink.Start();
     }
 
     private void Close()
     {
+        _blink.Stop();
+        _caret.Visibility = Visibility.Collapsed;
         _box.Visibility = Visibility.Collapsed;
         _layer.IsHitTestVisible = false;
         _box.Text = "";

@@ -55,6 +55,7 @@ public sealed class BoardInput : IDisposable
     private long _lastMoveTick;
     private int _hiddenDrawn;
     private bool _textMode; // T 또는 툴바 "텍스트": 다음 클릭 자리에 입력창
+    private string _textColor = "#000000"; // 텍스트 기본색은 검정, 텍스트 모드·입력 중 색을 고르면 바뀐다
 
     public event Action? SaveRequested;
     public event Action? CopyRequested;
@@ -92,7 +93,7 @@ public sealed class BoardInput : IDisposable
         _bar.Margin = new Thickness(0, 0, ToolbarControl.EdgeMargin, 0);
         window.Root.Children.Add(_bar);
         _bar.Action += OnToolbar;
-        _bar.ColorPicked += n => _tools.SetColor(n);
+        _bar.ColorPicked += PickColor;
         _bar.ShapePicked += k => { _tools.SetTool(Tool.Shape); _tools.SetShape(k); };
         _tools.Changed += () => _bar.Sync(_tools);
         _bar.Sync(_tools);
@@ -143,7 +144,7 @@ public sealed class BoardInput : IDisposable
         if (_textMode)
         {
             ExitTextMode();
-            if (!_text.TryBeginEdit(p, out _)) _text.Begin(p, _tools.Color, TextEditor.FontSizeFor(_tools.Width));
+            if (!_text.TryBeginEdit(p, out _)) _text.Begin(p, _textColor, TextEditor.FontSizeFor(_tools.Width));
             e.Handled = true;
             return;
         }
@@ -152,7 +153,7 @@ public sealed class BoardInput : IDisposable
         {
             // 첫 클릭이 점 하나짜리 획을 남겼으면 되돌린다 (ponytail: 클릭 지연 없이 단순하게)
             if (_tools.Tool is Tool.Pen or Tool.Highlighter && _history.CanUndo) { _history.Undo(); _renderer.InvalidateAll(); }
-            if (!_text.TryBeginEdit(p, out _)) _text.Begin(p, _tools.Color, TextEditor.FontSizeFor(_tools.Width));
+            if (!_text.TryBeginEdit(p, out _)) _text.Begin(p, _textColor, TextEditor.FontSizeFor(_tools.Width));
             e.Handled = true;
             return;
         }
@@ -329,7 +330,7 @@ public sealed class BoardInput : IDisposable
         _textMode = true;
         _window.Cursor = System.Windows.Input.Cursors.IBeam;
         _bar.SetTextMode(true, _tools);
-        _hud.Update("텍스트", "클릭한 자리에 입력", (int)TextEditor.FontSizeFor(_tools.Width), _tools.Color);
+        _hud.Update("텍스트", "클릭한 자리에 입력", (int)TextEditor.FontSizeFor(_tools.Width), _textColor);
     }
 
     private void ExitTextMode()
@@ -371,10 +372,23 @@ public sealed class BoardInput : IDisposable
         _menu.OnRightButtonUp(ScreenPos(e));
     }
 
+    /// <summary>색 선택: 텍스트 모드·입력 중이면 텍스트 색, 아니면 현재 도구 색.</summary>
+    private void PickColor(int number)
+    {
+        if (_textMode || _text.IsEditing)
+        {
+            _textColor = Palette.ByNumber(number);
+            _text.SetColor(_textColor);
+            if (_textMode) _hud.Update("텍스트", "클릭한 자리에 입력", (int)TextEditor.FontSizeFor(_tools.Width), _textColor);
+            return;
+        }
+        _tools.SetColor(number);
+    }
+
     private void OnMenuSelected(string key)
     {
         var color = RadialItems.ColorKeys.ToList().IndexOf(key);
-        if (color >= 0) _tools.SetColor(color + 1);
+        if (color >= 0) PickColor(color + 1);
         else if (Enum.TryParse<ShapeKind>(key, out var kind)) _tools.SetShape(kind);
     }
 
@@ -447,8 +461,8 @@ public sealed class BoardInput : IDisposable
             case Key.C when Ctrl: CopyRequested?.Invoke(); break;
             case Key.Z when Ctrl: if (_history.Undo()) _renderer.InvalidateAll(); break;
             case Key.Y when Ctrl: if (_history.Redo()) _renderer.InvalidateAll(); break;
-            case >= Key.D1 and <= Key.D9: _tools.SetColor(key - Key.D0); break;
-            case >= Key.NumPad1 and <= Key.NumPad9: _tools.SetColor(key - Key.NumPad0); break;
+            case >= Key.D1 and <= Key.D9: PickColor(key - Key.D0); break;
+            case >= Key.NumPad1 and <= Key.NumPad9: PickColor(key - Key.NumPad0); break;
             case Key.Delete: break; // T42 선택 객체 삭제
             default: handled = false; break;
         }
