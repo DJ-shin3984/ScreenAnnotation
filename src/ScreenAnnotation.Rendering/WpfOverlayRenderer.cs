@@ -177,8 +177,10 @@ public sealed class WpfOverlayRenderer : IOverlayRenderer
                 dc.DrawRectangle(ColorHex.Brush(patch.FillColor), null,
                     new Rect(patch.Area.X, patch.Area.Y, patch.Area.Width, patch.Area.Height));
                 break;
-            case ElementAnnotation:
-                break; // T41에서 잘라낸 비트맵을 그린다
+            case ElementAnnotation el:
+                if (ElementImageCache.Get(el.Id) is { } img)
+                    dc.DrawImage(img, new Rect(el.Bounds.X, el.Bounds.Y, el.Bounds.Width, el.Bounds.Height));
+                break;
         }
     }
 

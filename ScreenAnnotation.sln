@@ -33,6 +33,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotation.Recognitio
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotation.App.Tests", "tests\ScreenAnnotation.App.Tests\ScreenAnnotation.App.Tests.csproj", "{634D7B09-9FAC-4327-B027-9E36744BC2E9}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{1E689562-9782-4E3D-BC45-768F285D7B87}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenAnnotation.DatasetRecorder", "tools\ScreenAnnotation.DatasetRecorder\ScreenAnnotation.DatasetRecorder.csproj", "{E78D49C3-AE01-4477-8F7D-0F9F5EB147B5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -94,6 +98,10 @@ Global
 		{634D7B09-9FAC-4327-B027-9E36744BC2E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{634D7B09-9FAC-4327-B027-9E36744BC2E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{634D7B09-9FAC-4327-B027-9E36744BC2E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E78D49C3-AE01-4477-8F7D-0F9F5EB147B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E78D49C3-AE01-4477-8F7D-0F9F5EB147B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E78D49C3-AE01-4477-8F7D-0F9F5EB147B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E78D49C3-AE01-4477-8F7D-0F9F5EB147B5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{A3534445-8B5A-45A7-9699-23164B1B7D07} = {01D7F467-EFF7-4E47-961A-84147FE9CACD}
@@ -109,5 +117,6 @@ Global
 		{E4CF9DB9-12E5-4CA1-8D85-37CCFB0296CB} = {4906F7A8-1C9B-40F7-AEA1-BF3326656FFD}
 		{A45D8060-F6DF-4F7B-B316-FB74FF813379} = {4906F7A8-1C9B-40F7-AEA1-BF3326656FFD}
 		{634D7B09-9FAC-4327-B027-9E36744BC2E9} = {4906F7A8-1C9B-40F7-AEA1-BF3326656FFD}
+		{E78D49C3-AE01-4477-8F7D-0F9F5EB147B5} = {1E689562-9782-4E3D-BC45-768F285D7B87}
 	EndGlobalSection
 EndGlobal

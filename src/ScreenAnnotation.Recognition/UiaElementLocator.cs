@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using ScreenAnnotation.Core.Annotations;
 using ScreenAnnotation.Core.Monitors;
 using ScreenAnnotation.Core.Recognition;
 using ScreenAnnotation.Core.Windows;
@@ -34,6 +35,88 @@ public sealed class UiaElementLocator(ILogger<UiaElementLocator> logger) : IUiaE
 
     public Task<UiaElement?> FindFromPointAsync(int x, int y, CancellationToken ct) =>
         RunAsync("ElementFromPoint", ct, uia => uia.ElementFromPoint(new tagPOINT { x = x, y = y }));
+
+    public Task<DetectedElement?> FindDetailedAsync(int x, int y, WindowSnapshot snapshot, CancellationToken ct)
+    {
+        var window = snapshot.HitTest(x, y);
+        if (window is null) return Task.FromResult<DetectedElement?>(null);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(TimeoutMs);
+        var work = Task.Run(() => Detail(x, y, window), CancellationToken.None);
+        return work.WaitAsync(cts.Token).ContinueWith(t =>
+        {
+            if (t.IsFaulted) logger.LogDebug(t.Exception, "UIA Detail 실패");
+            return t.IsCompletedSuccessfully ? t.Result : null;
+        }, TaskScheduler.Default);
+    }
+
+    private static DetectedElement? Detail(int x, int y, WindowInfo window)
+    {
+        var uia = new CUIAutomation8();
+        var walker = uia.RawViewWalker;
+        var chain = new List<IUIAutomationElement>(); // 루트 제외, 점을 포함하는 경로
+        var current = walker.GetFirstChildElement(uia.ElementFromHandle(window.Handle));
+        for (var depth = 0; depth < MaxDepth && current is not null; depth++)
+        {
+            if (!ToRect(current.CurrentBoundingRectangle).Contains(x, y))
+            {
+                current = walker.GetNextSiblingElement(current);
+                continue;
+            }
+            chain.Add(current);
+            current = walker.GetFirstChildElement(current);
+        }
+        // 검증: 창 전체·화면 전체 크기 요소는 결과로 치지 않는다
+        chain.RemoveAll(e => { var r = ToRect(e.CurrentBoundingRectangle); return r.Width <= 0 || r.Height <= 0 || r == window.Bounds || r.Width >= window.Bounds.Width && r.Height >= window.Bounds.Height; });
+        if (chain.Count == 0) return null;
+        var deepest = chain[^1];
+        var bounds = ToRect(deepest.CurrentBoundingRectangle);
+
+        // 텍스트: TextPattern RangeFromPoint → 단어 → 줄 → 문단
+        if (deepest.GetCurrentPattern(UIA_PatternIds.UIA_TextPatternId) is IUIAutomationTextPattern tp)
+        {
+            var range = tp.RangeFromPoint(new tagPOINT { x = x, y = y });
+            if (range is not null)
+            {
+                var levels = new List<ElementLevel>();
+                foreach (var unit in new[] { TextUnit.TextUnit_Word, TextUnit.TextUnit_Line, TextUnit.TextUnit_Paragraph })
+                {
+                    range.ExpandToEnclosingUnit(unit);
+                    var r = Union(range.GetBoundingRectangles());
+                    if (r is null || !r.Value.Contains(x, y)) continue;
+                    var text = range.GetText(-1)?.Trim();
+                    if (levels.Count == 0 || levels[^1].Bounds != r.Value) levels.Add(new ElementLevel(r.Value, text));
+                }
+                if (levels.Count > 0)
+                    return new DetectedElement(ElementKind.Text, levels[0].Bounds, levels[0].Text, ElementSource.Uia, levels.Skip(1).ToList());
+            }
+        }
+
+        // 이미지·기타: 자기 자신 + 감싼 요소들 (큰 순서대로 커지는 것만)
+        var ancestors = new List<ElementLevel>();
+        var last = bounds;
+        for (var i = chain.Count - 2; i >= 0; i--)
+        {
+            var r = ToRect(chain[i].CurrentBoundingRectangle);
+            if (r.Width > last.Width || r.Height > last.Height) { ancestors.Add(new ElementLevel(r, null)); last = r; }
+        }
+        var kind = deepest.CurrentControlType == 50006 /* Image */ ? ElementKind.Image
+                 : deepest.CurrentControlType == 50020 /* Text */ ? ElementKind.Text : ElementKind.Image;
+        var name = kind == ElementKind.Text ? deepest.CurrentName : null;
+        return new DetectedElement(kind, bounds, string.IsNullOrWhiteSpace(name) ? null : name, ElementSource.Uia, ancestors);
+    }
+
+    private static RectPx? Union(Array rects)
+    {
+        if (rects is not double[] d || d.Length < 4) return null;
+        double l = double.MaxValue, t = double.MaxValue, r = double.MinValue, b = double.MinValue;
+        for (var i = 0; i + 3 < d.Length; i += 4)
+        {
+            l = Math.Min(l, d[i]); t = Math.Min(t, d[i + 1]);
+            r = Math.Max(r, d[i] + d[i + 2]); b = Math.Max(b, d[i + 1] + d[i + 3]);
+        }
+        return new RectPx((int)Math.Floor(l), (int)Math.Floor(t), (int)Math.Ceiling(r - l), (int)Math.Ceiling(b - t));
+    }
 
     private Task<UiaElement?> RunAsync(string method, CancellationToken ct, Func<IUIAutomation, IUIAutomationElement?> query)
     {
