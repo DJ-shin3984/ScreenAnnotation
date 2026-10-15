@@ -54,6 +54,8 @@ public sealed class WpfOverlayRenderer : IOverlayRenderer
         window.Viewport.Children.Add(_l3);
     }
 
+    public HashSet<Guid> HiddenIds { get; } = [];
+
     public void Start() => InvalidateAll();
 
     public void Stop()
@@ -74,7 +76,8 @@ public sealed class WpfOverlayRenderer : IOverlayRenderer
         _l2.Clear();
         var dv = new DrawingVisual();
         using (var dc = dv.RenderOpen())
-            foreach (var a in _store.ForMonitor(_window.Monitor.Key)) Draw(dc, a);
+            foreach (var a in _store.ForMonitor(_window.Monitor.Key))
+                if (!HiddenIds.Contains(a.Id)) Draw(dc, a);
         _l2.Render(dv);
     }
 

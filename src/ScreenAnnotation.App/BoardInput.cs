@@ -5,6 +5,7 @@ using System.Windows.Media;
 using Microsoft.Extensions.Logging;
 using ScreenAnnotation.Core.Annotations;
 using ScreenAnnotation.Core.Monitors;
+using ScreenAnnotation.Core.Recognition;
 using ScreenAnnotation.Core.Settings;
 using ScreenAnnotation.Core.Tools;
 using ScreenAnnotation.Rendering;
@@ -12,6 +13,7 @@ using ScreenAnnotation.Rendering.Hud;
 using ScreenAnnotation.Rendering.Radial;
 using ScreenAnnotation.Rendering.Shapes;
 using ScreenAnnotation.Rendering.Strokes;
+using ScreenAnnotation.Rendering.Toolbar;
 using Brushes = System.Windows.Media.Brushes;
 using Ellipse = System.Windows.Shapes.Ellipse;
 using Pen = System.Windows.Media.Pen;
@@ -47,13 +49,26 @@ public sealed class BoardInput : IDisposable
     private Point _lastScreen;
     private EphemeralStrokes.Stroke? _ephemeral;
     private readonly HashSet<Guid> _erased = [];
+    private readonly TextEditor _text;
+    private readonly ToolbarControl _bar = new();
+    private Point _lastErase;
+    private long _lastMoveTick;
+    private int _hiddenDrawn;
+
+    public event Action? SaveRequested;
+    public event Action? CopyRequested;
+    public event Action? CloseRequested;
+
+    public void Flash(string message) => _hud.Flash(message, TimeSpan.FromSeconds(1));
 
     // 사라지는 펜·레이저 시계: 렌더러도 같은 Environment.TickCount64 기준으로 Tick/Prune 한다.
     private static TimeSpan Now => TimeSpan.FromMilliseconds(Environment.TickCount64);
 
     public BoardInput(OverlayWindow window, IOverlayRenderer renderer, ToolState tools, AnnotationStore store,
-        HistoryManager history, Settings settings, ILogger<BoardInput> log)
+        HistoryManager history, TextEditor text, Settings settings, ILogger<BoardInput> log)
     {
+        _text = text;
+        _text.Closed += () => tools.Reset();
         _window = window;
         _renderer = renderer;
         _tools = tools;
@@ -69,6 +84,14 @@ public sealed class BoardInput : IDisposable
         _layer.Children.Add(_widthPreview);
         _layer.Children.Add(_menu);
         _layer.Children.Add(_hud);
+        _layer.Children.Add(_bar);
+        Canvas.SetRight(_bar, ToolbarControl.EdgeMargin);
+        Canvas.SetTop(_bar, Math.Max(0, (window.Monitor.Bounds.Height - _bar.PreferredHeight) / 2));
+        _bar.Action += OnToolbar;
+        _bar.ColorPicked += n => _tools.SetColor(n);
+        _bar.ShapePicked += k => { _tools.SetTool(Tool.Shape); _tools.SetShape(k); };
+        _tools.Changed += () => _bar.Sync(_tools);
+        _bar.Sync(_tools);
         Canvas.SetRight(_hud, HudControl.EdgeMargin);
         Canvas.SetBottom(_hud, HudControl.EdgeMargin);
         window.Root.Children.Add(_layer);
@@ -105,7 +128,21 @@ public sealed class BoardInput : IDisposable
     {
         var p = Pos(e);
         if (_menu.IsOpen) { _menu.OnLeftButtonDown(ScreenPos(e)); e.Handled = true; return; }
+        if (_bar.IsMouseOver) return; // 툴바 클릭은 툴바가 처리
+        if (_text.IsEditing)
+        {
+            if (!_text.Contains(ScreenPos(e))) { _text.Commit(); e.Handled = true; }
+            return;
+        }
         if (Ctrl) return; // Ctrl+클릭은 요소 인식(ElementProbe) 몫
+        if (e.ClickCount == 2)
+        {
+            // 첫 클릭이 점 하나짜리 획을 남겼으면 되돌린다 (ponytail: 클릭 지연 없이 단순하게)
+            if (_tools.Tool is Tool.Pen or Tool.Highlighter && _history.CanUndo) { _history.Undo(); _renderer.InvalidateAll(); }
+            if (!_text.TryBeginEdit(p, out _)) _text.Begin(p, _tools.Color, TextEditor.FontSizeFor(_tools.Width));
+            e.Handled = true;
+            return;
+        }
         if (_spaceDown) { BeginPan(e); return; }
 
         _start = p;
@@ -139,9 +176,11 @@ public sealed class BoardInput : IDisposable
                 break;
             case Tool.Eraser:
                 _erased.Clear();
+                _lastErase = p;
                 EraseAt(p);
                 break;
         }
+        _lastMoveTick = Environment.TickCount64;
     }
 
     private void OnMove(object sender, MouseEventArgs e)
@@ -176,14 +215,15 @@ public sealed class BoardInput : IDisposable
                     _live.Points.Add(_start);
                     _live.Points.Add(SnapHorizontal(_start, p));
                 }
-                else if (StrokeBuilder.ShouldAppend(_live.Points, p)) _live.Points.Add(p);
+                else if (StrokeBuilder.ShouldAppend(_live.Points, p)) { _live.Points.Add(p); _lastMoveTick = Environment.TickCount64; }
                 _renderer.UpdateLiveStroke(_live);
                 break;
             case Tool.Shape:
                 _renderer.UpdateLiveShape(new LiveShape(_tools.ShapeKind, _start, p, Shift, _tools.Color, ContentWidth));
                 break;
             case Tool.Eraser:
-                EraseAt(p);
+                EraseAlong(_lastErase, p);
+                _lastErase = p;
                 break;
         }
     }
@@ -216,9 +256,13 @@ public sealed class BoardInput : IDisposable
                 Points = pts.Select(q => new PointF2((float)q.X, (float)q.Y)).ToList(),
                 Bounds = Inflate(BoundsOf(pts), _live.Width),
             };
+            var held = Environment.TickCount64 - _lastMoveTick;
             _live = null;
             _renderer.UpdateLiveStroke(null);
             Commit(new AddCommand(stroke), stroke.Bounds);
+            // 획 끝에서 버튼을 누른 채 0.5초 멈추면 도형 보정 (Undo 한 번이면 원래 획)
+            if (stroke.Kind == StrokeKind.Pen && held >= 500 && ShapeRecognizer.Recognize(stroke) is { } corrected)
+                Commit(new ReplaceCommand(stroke.Id, corrected), AnnotationStore.Union(stroke.Bounds, corrected.Bounds));
             return;
         }
 
@@ -244,7 +288,36 @@ public sealed class BoardInput : IDisposable
         {
             _history.Execute(new CompositeCommand(_erased.Select(id => (IAnnotationCommand)new RemoveCommand(id)).ToList()));
             _erased.Clear();
+            _renderer.HiddenIds.Clear();
+            _hiddenDrawn = 0;
             _renderer.InvalidateAll();
+        }
+    }
+
+    /// <summary>지우개 경로를 반지름 간격으로 샘플링해 빠르게 움직여도 사이 객체를 놓치지 않는다.</summary>
+    private void EraseAlong(Point a, Point b)
+    {
+        var step = Math.Max(ContentWidth / 2.0, 2);
+        var n = Math.Max(1, (int)Math.Ceiling((b - a).Length / step));
+        for (var i = 1; i <= n; i++)
+            EraseAt(a + (b - a) * (i / (double)n));
+    }
+
+    private void OnToolbar(ToolbarAction a)
+    {
+        switch (a)
+        {
+            case ToolbarAction.Text:
+                _text.Begin(_window.View.ToContent(Host.Width / 2, Host.Height / 2) is var (cx, cy) ? new Point(cx, cy) : default,
+                    _tools.Color, TextEditor.FontSizeFor(_tools.Width));
+                break;
+            case ToolbarAction.Undo: if (_history.Undo()) _renderer.InvalidateAll(); break;
+            case ToolbarAction.Redo: if (_history.Redo()) _renderer.InvalidateAll(); break;
+            case ToolbarAction.Save: SaveRequested?.Invoke(); break;
+            case ToolbarAction.Copy: CopyRequested?.Invoke(); break;
+            case ToolbarAction.ZoomReset: _window.View.Reset(); _window.ApplyView(); break;
+            case ToolbarAction.Close: CloseRequested?.Invoke(); break;
+            default: ToolbarControl.Apply(_tools, a); break;
         }
     }
 
@@ -316,6 +389,7 @@ public sealed class BoardInput : IDisposable
 
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
+        if (_text.IsEditing) return; // TextBox가 처리 (Esc·Ctrl+Enter·Tab)
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
         var handled = true;
         switch (key)
@@ -328,6 +402,9 @@ public sealed class BoardInput : IDisposable
             case Key.Tab: _tools.NextTool(); break;
             case Key.Escape: Reset(); _tools.Reset(); break;
             case Key.E: _tools.ToggleEraser(); break;
+            case Key.T: _text.Begin(Mouse.GetPosition(_window.Viewport), _tools.Color, TextEditor.FontSizeFor(_tools.Width)); break;
+            case Key.S when Ctrl: SaveRequested?.Invoke(); break;
+            case Key.C when Ctrl: CopyRequested?.Invoke(); break;
             case Key.Z when Ctrl: if (_history.Undo()) _renderer.InvalidateAll(); break;
             case Key.Y when Ctrl: if (_history.Redo()) _renderer.InvalidateAll(); break;
             case >= Key.D1 and <= Key.D9: _tools.SetColor(key - Key.D0); break;
@@ -366,7 +443,12 @@ public sealed class BoardInput : IDisposable
                     .StrokeContains(new Pen(Brushes.Black, s.Width + radius * 2), p),
                 _ => true, // Text·Patch·Element: Bounds 판정
             };
-            if (hit) _erased.Add(a.Id);
+            if (hit && _erased.Add(a.Id)) _renderer.HiddenIds.Add(a.Id);
+        }
+        if (_renderer.HiddenIds.Count != _hiddenDrawn)
+        {
+            _hiddenDrawn = _renderer.HiddenIds.Count;
+            _renderer.InvalidateAll(); // 지나간 객체는 바로 사라져 보인다
         }
     }
 
@@ -436,6 +518,9 @@ public sealed class BoardInput : IDisposable
         _live = null;
         _ephemeral = null;
         _erased.Clear();
+        _renderer.HiddenIds.Clear();
+        _hiddenDrawn = 0;
+        if (_text.IsEditing) _text.Cancel();
         if (_window.IsMouseCaptured) _window.ReleaseMouseCapture();
         _renderer.UpdateLiveStroke(null);
         _renderer.UpdateLiveShape(null);

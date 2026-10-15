@@ -26,6 +26,9 @@ public interface IOverlayRenderer
     /// <summary>전체 다시 합성 (보드 시작·Undo 등).</summary>
     void InvalidateAll();
 
+    /// <summary>지우개가 지나간 객체: 확정 전까지 L2에서 숨긴다.</summary>
+    HashSet<Guid> HiddenIds { get; }
+
     void UpdateLiveStroke(LiveStroke? stroke);
     void UpdateLiveShape(LiveShape? shape);
 

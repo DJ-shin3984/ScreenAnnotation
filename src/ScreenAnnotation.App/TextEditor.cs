@@ -52,7 +52,7 @@ public sealed class TextEditor
         };
         _box.PreviewKeyDown += OnKeyDown;
         _layer.Children.Add(_box);
-        _window.Root.Children.Add(_layer);
+        _window.Viewport.Children.Add(_layer); // content px: 확대를 따라간다
     }
 
     public bool IsEditing => _box.Visibility == Visibility.Visible;
