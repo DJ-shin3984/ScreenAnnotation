@@ -91,7 +91,7 @@ public class RendererTests
         var r = new WpfOverlayRenderer(w, store);
         r.Start();
 
-        var l2 = (System.Windows.Controls.Image)w.Root.Children[1];
+        var l2 = (System.Windows.Controls.Image)w.Viewport.Children[1];
         var bmp = (System.Windows.Media.Imaging.RenderTargetBitmap)l2.Source;
         var px = new byte[800 * 600 * 4];
         bmp.CopyPixels(px, 800 * 4, 0);

@@ -28,13 +28,13 @@ public sealed class ElementProbe(IUiaElementLocator locator, ModeHolder mode, IL
         var pick = new Rectangle { Stroke = Brushes.Red, StrokeThickness = 3, Visibility = Visibility.Collapsed };
         canvas.Children.Add(preview);
         canvas.Children.Add(pick);
-        w.Root.Children.Add(canvas);
+        w.Viewport.Children.Add(canvas); // 확대 시 사각형도 내용과 함께 움직인다
         _attached[w] = (preview, pick);
 
         w.PreviewMouseMove += async (_, e) =>
         {
             if (!IsCtrl || _busy) { if (!IsCtrl) preview.Visibility = Visibility.Collapsed; return; }
-            var (gx, gy) = Global(w, e.GetPosition(w.Root));
+            var (gx, gy) = Global(w, e.GetPosition(w.Viewport));
             _busy = true;
             try
             {
@@ -48,7 +48,7 @@ public sealed class ElementProbe(IUiaElementLocator locator, ModeHolder mode, IL
         {
             if (!IsCtrl || mode.Snapshot is not { } snap) return;
             e.Handled = true;
-            var (gx, gy) = Global(w, e.GetPosition(w.Root));
+            var (gx, gy) = Global(w, e.GetPosition(w.Viewport));
 
             var a = await locator.FindAsync(gx, gy, snap, CancellationToken.None);
             OverlayNative.SetClickThrough(w.Handle, true);
