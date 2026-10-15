@@ -13,4 +13,7 @@ public interface IUiaElementLocator
 
     /// <summary>대안: ElementFromPoint. 호출자가 질의 순간 오버레이를 투과 상태로 만들어야 한다.</summary>
     Task<UiaElement?> FindFromPointAsync(int x, int y, CancellationToken ct);
+
+    /// <summary>FindAsync + 검증 + 텍스트 범위(단어→줄→문단) 또는 상위 요소 목록. 150ms 초과·검증 실패 시 null.</summary>
+    Task<DetectedElement?> FindDetailedAsync(int x, int y, WindowSnapshot snapshot, CancellationToken ct);
 }
