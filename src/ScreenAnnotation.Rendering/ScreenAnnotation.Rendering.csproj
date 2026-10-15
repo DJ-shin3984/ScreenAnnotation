@@ -4,6 +4,7 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="ScreenAnnotation.Rendering.Tests" />
     <ProjectReference Include="../ScreenAnnotation.Core/ScreenAnnotation.Core.csproj" />
     <ProjectReference Include="../ScreenAnnotation.Windows/ScreenAnnotation.Windows.csproj" />
   </ItemGroup>

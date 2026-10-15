@@ -82,6 +82,25 @@ public sealed class ToolState
         Changed?.Invoke();
     }
 
+    /// <summary>툴바 클릭. 지우개로 가면 직전 도구를 기억한다.</summary>
+    public void SetTool(Tool tool)
+    {
+        if (tool == Tool.Eraser && Tool != Tool.Eraser) _beforeEraser = Tool;
+        Set(tool);
+    }
+
+    public void SetPenVariant(PenVariant variant)
+    {
+        PenVariant = variant;
+        SetTool(Tool.Pen);
+    }
+
+    public void SetHighlighterVariant(HighlighterVariant variant)
+    {
+        HighlighterVariant = variant;
+        SetTool(Tool.Highlighter);
+    }
+
     /// <summary>휠 델타 누적, ±120마다 한 단계. 굵기가 바뀌면 true.</summary>
     public bool Wheel(int delta)
     {
