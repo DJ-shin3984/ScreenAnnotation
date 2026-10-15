@@ -5,7 +5,7 @@ namespace ScreenAnnotation.App;
 
 public sealed class TrayController : IDisposable
 {
-    private readonly NotifyIcon _icon = new() { Text = "Screen Annotation", Icon = SystemIcons.Application };
+    private readonly NotifyIcon _icon = new() { Text = "Screen Annotation", Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!) ?? SystemIcons.Application };
     private readonly ContextMenuStrip _menu = new();
 
     public TrayController()

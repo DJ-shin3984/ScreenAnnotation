@@ -6,6 +6,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>ScreenAnnotation</AssemblyName>
+    <ApplicationIcon>Assets/app.ico</ApplicationIcon>
     <!-- WinForms 분석기: DPI는 WPF용 매니페스트(PerMonitorV2)로 설정한다 -->
     <NoWarn>$(NoWarn);WFAC010</NoWarn>
   </PropertyGroup>
