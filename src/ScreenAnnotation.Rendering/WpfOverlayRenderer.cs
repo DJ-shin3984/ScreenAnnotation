@@ -34,7 +34,6 @@ public sealed class WpfOverlayRenderer : IOverlayRenderer
     private readonly RenderTargetBitmap _l2;
     private readonly Image _l2Image;
     private readonly VisualHost _l3 = new();
-    private readonly Stopwatch _clock = Stopwatch.StartNew();
     private LiveStroke? _liveStroke;
     private LiveShape? _liveShape;
     private bool _ticking;
@@ -83,6 +82,7 @@ public sealed class WpfOverlayRenderer : IOverlayRenderer
 
     public void UpdateLiveStroke(LiveStroke? stroke) { _liveStroke = stroke; RedrawL3(); }
     public void UpdateLiveShape(LiveShape? shape) { _liveShape = shape; RedrawL3(); }
+    public void NotifyEphemeralChanged() => RedrawL3();
 
     /// <summary>프레임마다 호출: 사라지는 펜·레이저가 남아 있으면 갱신. 렌더러 밖(내보내기 등)에서도 쓸 수 있게 공개.</summary>
     public void RedrawL3()
@@ -135,14 +135,13 @@ public sealed class WpfOverlayRenderer : IOverlayRenderer
         else CompositionTarget.Rendering -= OnFrame;
     }
 
-    private void OnFrame(object? sender, EventArgs e)
+    internal void OnFrame(object? sender, EventArgs e)
     {
-        var now = _clock.Elapsed;
-        var changed = Ephemeral.Tick(now);
-        var laserBefore = Laser.Samples.Count;
+        if (Ephemeral.Strokes.Count == 0 && Laser.Samples.Count == 0) { EnsureTicking(); return; }
+        var now = MonotonicClock.Now;
+        Ephemeral.Tick(now);
         Laser.Prune(now);
-        if (changed || Laser.Samples.Count != laserBefore) RedrawL3();
-        else if (Ephemeral.Strokes.Count == 0 && Laser.Samples.Count == 0) EnsureTicking();
+        RedrawL3(); // 틱이 켜져 있는 동안(사라지는 펜·레이저가 있을 때만) 매 프레임 다시 그린다 — 그리는 중인 획도 보인다
     }
 
     /// <summary>사라지는 펜 획 하나를 현재 불투명도로 그린다. 내보내기(T50)도 같은 코드를 쓴다.</summary>

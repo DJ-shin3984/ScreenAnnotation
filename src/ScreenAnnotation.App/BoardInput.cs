@@ -62,7 +62,7 @@ public sealed class BoardInput : IDisposable
     public void Flash(string message) => _hud.Flash(message, TimeSpan.FromSeconds(1));
 
     // 사라지는 펜·레이저 시계: 렌더러도 같은 Environment.TickCount64 기준으로 Tick/Prune 한다.
-    private static TimeSpan Now => TimeSpan.FromMilliseconds(Environment.TickCount64);
+    private static TimeSpan Now => MonotonicClock.Now;
 
     public BoardInput(OverlayWindow window, IOverlayRenderer renderer, ToolState tools, AnnotationStore store,
         HistoryManager history, TextEditor text, SettingsStore settingsStore, ILogger<BoardInput> log)
@@ -157,9 +157,11 @@ public sealed class BoardInput : IDisposable
             case Tool.Pen when _tools.PenVariant == PenVariant.Ephemeral:
                 _ephemeral = _renderer.Ephemeral.Begin(_tools.Color, ContentWidth);
                 _ephemeral.Points.Add(p);
+                _renderer.NotifyEphemeralChanged();
                 break;
             case Tool.Pen when _tools.PenVariant == PenVariant.Laser:
                 _renderer.Laser.Add(p, Now);
+                _renderer.NotifyEphemeralChanged();
                 break;
             case Tool.Pen:
             case Tool.Highlighter:
@@ -204,10 +206,11 @@ public sealed class BoardInput : IDisposable
         switch (_tools.Tool)
         {
             case Tool.Pen when _ephemeral is not null:
-                if (StrokeBuilder.ShouldAppend(_ephemeral.Points, p)) _ephemeral.Points.Add(p);
+                if (StrokeBuilder.ShouldAppend(_ephemeral.Points, p)) { _ephemeral.Points.Add(p); _renderer.NotifyEphemeralChanged(); }
                 break;
             case Tool.Pen when _tools.PenVariant == PenVariant.Laser:
                 _renderer.Laser.Add(p, Now);
+                _renderer.NotifyEphemeralChanged();
                 break;
             case Tool.Pen:
             case Tool.Highlighter when _live is not null:

@@ -34,5 +34,8 @@ public interface IOverlayRenderer
 
     /// <summary>사라지는 펜·레이저. 렌더러가 프레임 틱으로 Tick/Prune를 돌리며 그린다.</summary>
     EphemeralStrokes Ephemeral { get; }
+
+    /// <summary>사라지는 펜·레이저 내용이 바뀌었을 때(그리는 중 점 추가 등) 호출: 즉시 다시 그리고 프레임 틱을 켠다.</summary>
+    void NotifyEphemeralChanged();
     LaserTrail Laser { get; }
 }
