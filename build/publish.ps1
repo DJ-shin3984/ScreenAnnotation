@@ -6,6 +6,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot
 $dist = "$root\dist"
 Get-Process ScreenAnnotation, ScreenAnnotation.Watchdog -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Milliseconds 800  # 프로세스가 파일 핸들을 놓을 때까지
 if (Test-Path $dist) { Remove-Item -Recurse -Force $dist }
 
 $common = @("-c", "Release", "-r", "win-x64", "-o", $dist)
