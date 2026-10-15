@@ -41,6 +41,10 @@ public sealed class ToolbarControl : UserControl
 
     public ToolbarControl()
     {
+        // ToolTipService 속성은 트리를 따라 상속된다: 모든 버튼에 150ms 지연·10초 표시
+        ToolTipService.SetInitialShowDelay(this, 150);
+        ToolTipService.SetShowDuration(this, 10000);
+        ToolTipService.SetBetweenShowDelay(this, 50);
         Focusable = false;
         var column = new StackPanel { Orientation = Orientation.Vertical };
 
@@ -160,7 +164,7 @@ public sealed class ToolbarControl : UserControl
         var b = new Border
         {
             Width = 36, Height = 36, Margin = new Thickness(0, 2, 0, 2), CornerRadius = new CornerRadius(6),
-            Background = Brushes.Transparent, Cursor = Cursors.Hand, ToolTip = tip, Focusable = false,
+            Background = Brushes.Transparent, Cursor = Cursors.Hand, ToolTip = Tip(tip), Focusable = false,
             Child = new Path { Data = icon, Stroke = Brushes.White, StrokeThickness = 2, Width = 24, Height = 24, Stretch = Stretch.None, StrokeLineJoin = PenLineJoin.Round, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false },
         };
         var normal = b.Background;
@@ -176,7 +180,7 @@ public sealed class ToolbarControl : UserControl
         var grid = new Grid { Width = 20, Height = 20 };
         grid.Children.Add(new Ellipse { Width = 16, Height = 16, Fill = ColorHex.Brush(hex), Stroke = Brushes.Gray, StrokeThickness = 0.5 });
         grid.Children.Add(ring);
-        var b = new Border { Width = 24, Height = 24, Child = grid, Cursor = Cursors.Hand, ToolTip = $"색 {number} ({number})", Focusable = false, Background = Brushes.Transparent };
+        var b = new Border { Width = 24, Height = 24, Child = grid, Cursor = Cursors.Hand, ToolTip = Tip($"색 {number} (키 {number})"), Focusable = false, Background = Brushes.Transparent };
         b.MouseLeftButtonUp += (_, e) => { e.Handled = true; ClickColor(number); };
         _colors.Add((b, ring));
         return b;
@@ -185,4 +189,17 @@ public sealed class ToolbarControl : UserControl
     private static Rectangle Separator() => new() { Height = 1, Fill = Brushes.Gray, Opacity = 0.6, Margin = new Thickness(4, 4, 4, 4) };
 
     private static Brush Freeze(Brush b) { b.Freeze(); return b; }
+
+    /// <summary>호버 즉시(150ms) 뜨는 큼직한 툴팁. 오버레이가 Topmost라 기본 지연이면 눈에 안 띈다.</summary>
+    private static ToolTip Tip(string text)
+    {
+        var t = new ToolTip
+        {
+            Content = text, FontSize = 14, Padding = new Thickness(10, 6, 10, 6),
+            Background = new SolidColorBrush(Color.FromArgb(0xEE, 0x20, 0x20, 0x20)), Foreground = Brushes.White,
+            BorderBrush = new SolidColorBrush(Color.FromArgb(0x60, 0xFF, 0xFF, 0xFF)), Placement = System.Windows.Controls.Primitives.PlacementMode.Left,
+            HorizontalOffset = -8,
+        };
+        return t;
+    }
 }

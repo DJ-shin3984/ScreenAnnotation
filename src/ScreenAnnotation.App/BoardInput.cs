@@ -85,9 +85,11 @@ public sealed class BoardInput : IDisposable
         _layer.Children.Add(_widthPreview);
         _layer.Children.Add(_menu);
         _layer.Children.Add(_hud);
-        _layer.Children.Add(_bar);
-        Canvas.SetRight(_bar, ToolbarControl.EdgeMargin);
-        Canvas.SetTop(_bar, Math.Max(0, (window.Monitor.Bounds.Height - _bar.PreferredHeight) / 2));
+        // 툴바는 마우스를 받아야 하므로 판정 불가 L4 캔버스가 아니라 Root에 직접 둔다 (화면 px, 확대 영향 없음)
+        _bar.HorizontalAlignment = System.Windows.HorizontalAlignment.Right;
+        _bar.VerticalAlignment = System.Windows.VerticalAlignment.Center;
+        _bar.Margin = new Thickness(0, 0, ToolbarControl.EdgeMargin, 0);
+        window.Root.Children.Add(_bar);
         _bar.Action += OnToolbar;
         _bar.ColorPicked += n => _tools.SetColor(n);
         _bar.ShapePicked += k => { _tools.SetTool(Tool.Shape); _tools.SetShape(k); };
