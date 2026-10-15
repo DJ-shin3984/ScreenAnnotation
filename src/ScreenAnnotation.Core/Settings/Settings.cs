@@ -19,5 +19,7 @@ public sealed record Settings
     public string SavePath { get; init; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "ScreenAnnotation");
 
+    public bool RunAtStartup { get; init; }
+
     public static Settings Default => new();
 }
