@@ -12,14 +12,21 @@ public sealed class ToolState
 
     public ToolState(Settings.Settings settings)
     {
+        ApplyDefaults(settings);
+        _color[Tool.Eraser] = "#FFFFFF";
+        _widthIndex[Tool.Eraser] = WidthSteps.NearestIndex(WidthSteps.Pen, 16);
+    }
+
+    /// <summary>설정 화면에서 바꾼 도구별 기본 색·굵기를 바로 반영한다.</summary>
+    public void ApplyDefaults(Settings.Settings settings)
+    {
         foreach (var tool in new[] { Tool.Pen, Tool.Highlighter, Tool.Shape })
         {
             var d = settings.ToolDefaults.TryGetValue(tool.ToString(), out var v) ? v : new Settings.ToolDefault("#FF3B30", 3);
             _color[tool] = d.Color;
             _widthIndex[tool] = WidthSteps.NearestIndex(WidthSteps.For(tool), d.Width);
         }
-        _color[Tool.Eraser] = "#FFFFFF";
-        _widthIndex[Tool.Eraser] = WidthSteps.NearestIndex(WidthSteps.Pen, 16);
+        Changed?.Invoke();
     }
 
     public Tool Tool { get; private set; } = Tool.Pen;
