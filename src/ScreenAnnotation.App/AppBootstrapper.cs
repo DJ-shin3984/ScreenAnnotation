@@ -7,6 +7,7 @@ using ScreenAnnotation.Core.Annotations;
 using ScreenAnnotation.Core.Capture;
 using ScreenAnnotation.Core.Recognition;
 using ScreenAnnotation.Core.Session;
+using ScreenAnnotation.Core.Settings;
 using ScreenAnnotation.Core.Tools;
 using ScreenAnnotation.Core.Watchdog;
 using ScreenAnnotation.Recognition;
@@ -29,7 +30,8 @@ public static class AppBootstrapper
         var services = new ServiceCollection();
         services.AddLogging(b => b.AddDebug().AddProvider(new FileLoggerProvider()));
         services.AddSingleton<SettingsRepository>();
-        services.AddSingleton(sp => sp.GetRequiredService<SettingsRepository>().Load());
+        services.AddSingleton(sp => new SettingsStore(sp.GetRequiredService<SettingsRepository>().Load()));
+        services.AddSingleton(sp => sp.GetRequiredService<SettingsStore>().Current);
         services.AddSingleton<IMonitorService, MonitorService>();
         services.AddSingleton<IHotkeyService, HotkeyService>();
         services.AddSingleton<IWindowSnapshotService, WindowSnapshotService>();

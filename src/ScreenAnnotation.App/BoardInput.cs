@@ -65,7 +65,7 @@ public sealed class BoardInput : IDisposable
     private static TimeSpan Now => TimeSpan.FromMilliseconds(Environment.TickCount64);
 
     public BoardInput(OverlayWindow window, IOverlayRenderer renderer, ToolState tools, AnnotationStore store,
-        HistoryManager history, TextEditor text, Settings settings, ILogger<BoardInput> log)
+        HistoryManager history, TextEditor text, SettingsStore settingsStore, ILogger<BoardInput> log)
     {
         _text = text;
         _text.Closed += () => tools.Reset();
@@ -76,7 +76,8 @@ public sealed class BoardInput : IDisposable
         _history = history;
         _log = log;
         _monitorKey = window.Monitor.Key;
-        _renderer.Ephemeral.Hold = TimeSpan.FromSeconds(settings.EphemeralSeconds);
+        _renderer.Ephemeral.Hold = TimeSpan.FromSeconds(settingsStore.Current.EphemeralSeconds);
+        settingsStore.Changed += () => _renderer.Ephemeral.Hold = TimeSpan.FromSeconds(settingsStore.Current.EphemeralSeconds);
 
         _layer.Width = window.Monitor.Bounds.Width;
         _layer.Height = window.Monitor.Bounds.Height;

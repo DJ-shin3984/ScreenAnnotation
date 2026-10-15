@@ -11,6 +11,8 @@ using ScreenAnnotation.Rendering;
 using ScreenAnnotation.Windows.Capture;
 using ScreenAnnotation.Windows.Input;
 using ScreenAnnotation.Core.Settings;
+using ScreenAnnotation.Core.Tools;
+using ScreenAnnotation.Storage;
 using ScreenAnnotation.Core.Windows;
 using ScreenAnnotation.Windows.Watchdog;
 
@@ -44,6 +46,8 @@ public partial class App : System.Windows.Application
         _services.GetRequiredService<ILogger<App>>().LogInformation("ScreenAnnotation started");
         _services.GetRequiredService<IMonitorService>(); // UI 스레드에서 생성: 메시지 창 + 모니터 목록 로그
         var tray = _services.GetRequiredService<TrayController>();
+        tray.AddItem("설정", () => new SettingsWindow(_services.GetRequiredService<SettingsStore>(), _services.GetRequiredService<SettingsRepository>(),
+            _services.GetRequiredService<IHotkeyService>(), _services.GetRequiredService<ToolState>()).Show());
         tray.AddItem("창 목록 로그", () => _services.GetRequiredService<IWindowSnapshotService>().Take());
         tray.AddItem("UI 스레드 정지 (디버그)", () => Thread.Sleep(10000));
         tray.Show();

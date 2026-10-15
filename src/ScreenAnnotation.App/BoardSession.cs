@@ -28,7 +28,7 @@ public sealed class BoardSession(
     AnnotationStore store,
     HistoryManager history,
     ToolState tools,
-    Settings settings,
+    SettingsStore settingsStore,
     ILoggerFactory loggerFactory,
     ILogger<BoardSession> log)
 {
@@ -42,7 +42,7 @@ public sealed class BoardSession(
         {
             var renderer = new WpfOverlayRenderer(w, store);
             var text = new TextEditor(w, store, history, renderer.InvalidateAnnotations);
-            var input = new BoardInput(w, renderer, tools, store, history, text, settings, loggerFactory.CreateLogger<BoardInput>());
+            var input = new BoardInput(w, renderer, tools, store, history, text, settingsStore, loggerFactory.CreateLogger<BoardInput>());
             input.SaveRequested += SaveAll;
             input.CopyRequested += () => Copy(w);
             input.CloseRequested += () => { if (mode.OnHotkey() == HotkeyAction.Stop) Stop(); };
@@ -120,7 +120,7 @@ public sealed class BoardSession(
         {
             if (!_frames.TryGetValue(w.Monitor.Key, out var frame)) continue;
             var img = BoardExporter.Compose(frame, store.ForMonitor(w.Monitor.Key), renderer.Ephemeral.Strokes);
-            var path = BoardExporter.SavePng(img, settings.SavePath, i++, now);
+            var path = BoardExporter.SavePng(img, settingsStore.Current.SavePath, i++, now);
             log.LogInformation("저장 {Path}", path);
             input.Flash("저장됨");
         }
