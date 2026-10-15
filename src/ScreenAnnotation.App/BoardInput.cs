@@ -127,6 +127,7 @@ public sealed class BoardInput : IDisposable
 
     private void OnLeftDown(object sender, MouseButtonEventArgs e)
     {
+        if (Suspended) { e.Handled = true; return; }
         var p = Pos(e);
         if (_menu.IsOpen) { _menu.OnLeftButtonDown(ScreenPos(e)); e.Handled = true; return; }
         if (_bar.IsMouseOver) return; // 툴바 클릭은 툴바가 처리
@@ -186,6 +187,7 @@ public sealed class BoardInput : IDisposable
 
     private void OnMove(object sender, MouseEventArgs e)
     {
+        if (Suspended) return;
         if (_panning)
         {
             var sp = ScreenPos(e);
@@ -324,6 +326,7 @@ public sealed class BoardInput : IDisposable
 
     private void OnRightDown(object sender, MouseButtonEventArgs e)
     {
+        if (Suspended) { e.Handled = true; return; }
         if (_dragging || Ctrl) return;
         e.Handled = true;
         _menu.Open(ScreenPos(e), _tools.Tool == Tool.Shape ? RadialItems.Shapes() : RadialItems.Colors(), Host);
@@ -345,6 +348,7 @@ public sealed class BoardInput : IDisposable
 
     private void OnWheel(object sender, MouseWheelEventArgs e)
     {
+        if (Suspended) { e.Handled = true; return; }
         e.Handled = true;
         if (Ctrl)
         {
@@ -361,6 +365,7 @@ public sealed class BoardInput : IDisposable
 
     private void OnMiddleDown(object sender, MouseButtonEventArgs e)
     {
+        if (Suspended) return;
         if (e.ChangedButton != MouseButton.Middle || _dragging) return;
         BeginPan(e);
     }
@@ -390,6 +395,7 @@ public sealed class BoardInput : IDisposable
 
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
+        if (Suspended) { e.Handled = true; return; }
         if (_text.IsEditing) return; // TextBox가 처리 (Esc·Ctrl+Enter·Tab)
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
         var handled = true;
@@ -511,6 +517,9 @@ public sealed class BoardInput : IDisposable
     }
 
     /// <summary>진행 중인 작업 취소, 메뉴 닫기. 보드 종료·Esc에 호출.</summary>
+    /// <summary>끄기 확인창이 떠 있는 동안 true: 모든 판서 입력을 무시한다.</summary>
+    public bool Suspended { get; set; }
+
     public void Reset()
     {
         _dragging = false;
