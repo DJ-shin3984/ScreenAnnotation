@@ -245,8 +245,8 @@ public sealed class BoardInput : IDisposable
 
         if (_ephemeral is not null)
         {
+            _renderer.Ephemeral.End(_ephemeral, Now);
             _ephemeral = null;
-            _renderer.Ephemeral.End(Now);
             return;
         }
 

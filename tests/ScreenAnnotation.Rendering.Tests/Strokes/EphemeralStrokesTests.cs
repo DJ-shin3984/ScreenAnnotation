@@ -8,33 +8,48 @@ public class EphemeralStrokesTests
     private static TimeSpan S(double s) => TimeSpan.FromSeconds(s);
 
     [Fact]
-    public void AllStrokesExpireTogetherFromLastEnd()
+    public void EachStrokeExpiresOnItsOwnTimer()
+    {
+        var e = new EphemeralStrokes(); // Hold 1.0s, Fade 0.7s
+        var a = e.Begin("#FF3B30", 3); a.Points.Add(new Point(0, 0));
+        e.End(a, S(0));
+        var b = e.Begin("#FF3B30", 3); b.Points.Add(new Point(5, 5));
+        e.End(b, S(2));
+
+        e.Tick(S(0.9)).Should().BeFalse();
+        e.Strokes.Should().HaveCount(2).And.OnlyContain(s => s.Opacity == 1);
+
+        e.Tick(S(1.35)).Should().BeTrue();
+        a.Opacity.Should().BeInRange(0.4, 0.6, "첫 획은 페이드 중간");
+        b.Opacity.Should().Be(1, "둘째 획은 아직 유지 시간");
+
+        e.Tick(S(1.8)).Should().BeTrue();
+        e.Strokes.Should().ContainSingle().Which.Should().BeSameAs(b);
+
+        e.Tick(S(3.8)).Should().BeTrue();
+        e.Strokes.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void StrokeBeingDrawnNeverFades()
     {
         var e = new EphemeralStrokes();
-        e.Begin("#FF3B30", 3).Points.Add(new Point(0, 0));
-        e.End(S(0));
-        e.Begin("#FF3B30", 3).Points.Add(new Point(5, 5)); // 두 번째 획 시작 → 타이머 리셋
-        e.Tick(S(10)).Should().BeFalse("그리는 중에는 사라지지 않음");
-        e.Strokes.Should().HaveCount(2);
-
-        e.End(S(10));
-        e.Tick(S(12.4)).Should().BeFalse();
-        e.Strokes.Should().OnlyContain(s => s.Opacity == 1);
-
-        e.Tick(S(12.75)).Should().BeTrue();
-        e.Strokes.Should().OnlyContain(s => s.Opacity > 0.4 && s.Opacity < 0.6, "페이드 중간");
-
-        e.Tick(S(13.1)).Should().BeTrue();
+        var a = e.Begin("#000000", 1);
+        e.Tick(S(100)).Should().BeFalse();
+        e.Strokes.Should().ContainSingle();
+        e.End(S(100)); // End() without a stroke = 가장 최근 미완료 획
+        e.Tick(S(101.8)).Should().BeTrue();
         e.Strokes.Should().BeEmpty();
     }
 
     [Fact]
     public void HoldIsConfigurable()
     {
-        var e = new EphemeralStrokes { Hold = S(1) };
+        var e = new EphemeralStrokes { Hold = S(3) };
         e.Begin("#000000", 1);
         e.End(S(0));
-        e.Tick(S(1.6)).Should().BeTrue();
+        e.Tick(S(2.9)).Should().BeFalse();
+        e.Tick(S(3.8)).Should().BeTrue();
         e.Strokes.Should().BeEmpty();
     }
 

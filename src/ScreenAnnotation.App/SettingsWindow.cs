@@ -67,7 +67,7 @@ public sealed class SettingsWindow : Window
         // 사라지는 시간
         panel.Children.Add(Header("사라지는 펜 유지 시간"));
         var secLabel = new TextBlock { Text = $"{s.EphemeralSeconds:0.0}초", Width = 50, VerticalAlignment = VerticalAlignment.Center };
-        var slider = new Slider { Minimum = 1, Maximum = 10, TickFrequency = 0.5, IsSnapToTickEnabled = true, Value = s.EphemeralSeconds, Width = 300 };
+        var slider = new Slider { Minimum = 0.5, Maximum = 10, TickFrequency = 0.5, IsSnapToTickEnabled = true, Value = s.EphemeralSeconds, Width = 300 };
         slider.ValueChanged += (_, e) =>
         {
             secLabel.Text = $"{e.NewValue:0.0}초";

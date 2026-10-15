@@ -14,7 +14,7 @@ public sealed record Settings
     };
 
     /// <summary>사라지는 펜 유지 시간(초). 1~10.</summary>
-    public double EphemeralSeconds { get; init; } = 2.5;
+    public double EphemeralSeconds { get; init; } = 1.0;
 
     public string SavePath { get; init; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "ScreenAnnotation");
