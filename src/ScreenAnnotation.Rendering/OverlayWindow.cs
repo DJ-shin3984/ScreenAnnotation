@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using ScreenAnnotation.Core.Capture;
 using ScreenAnnotation.Core.Monitors;
+using ScreenAnnotation.Core.Session;
 using ScreenAnnotation.Windows.Overlay;
 
 namespace ScreenAnnotation.Rendering;
@@ -18,8 +19,16 @@ public sealed class OverlayWindow : Window
     public MonitorInfo Monitor { get; }
     public nint Handle { get; }
 
-    /// <summary>자식 요소를 두는 루트. 물리 픽셀 단위.</summary>
+    /// <summary>자식 요소를 두는 루트. 물리 픽셀 단위(화면 좌표). HUD·팔레트처럼 확대되지 않을 것.</summary>
     public Grid Root { get; }
+
+    /// <summary>정지 화면·판서(L1~L3)를 담는 확대 대상. 자식 좌표 = 저장 좌표(content px).</summary>
+    public Grid Viewport { get; }
+
+    public ViewTransform View { get; }
+
+    private readonly ScaleTransform _viewScale = new();
+    private readonly TranslateTransform _viewOffset = new();
 
     public OverlayWindow(MonitorInfo monitor)
     {
@@ -36,7 +45,15 @@ public sealed class OverlayWindow : Window
         RenderOptions.SetBitmapScalingMode(_background, BitmapScalingMode.NearestNeighbor);
         _dpiScale = new ScaleTransform(96.0 / monitor.DpiX, 96.0 / monitor.DpiY);
         Root = new Grid { LayoutTransform = _dpiScale, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
-        Root.Children.Add(_background);
+        View = new ViewTransform(monitor.Bounds.Width, monitor.Bounds.Height);
+        Viewport = new Grid
+        {
+            Width = monitor.Bounds.Width, Height = monitor.Bounds.Height,
+            HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top,
+            RenderTransform = new TransformGroup { Children = { _viewScale, _viewOffset } },
+        };
+        Viewport.Children.Add(_background);
+        Root.Children.Add(Viewport);
         Content = Root;
 
         Handle = new WindowInteropHelper(this).EnsureHandle();
@@ -57,9 +74,19 @@ public sealed class OverlayWindow : Window
         Activate();
     }
 
+    /// <summary>View의 배율·오프셋을 화면에 반영. 애니메이션 없음(즉시, 120ms 이내 조건 충족).</summary>
+    public void ApplyView()
+    {
+        _viewScale.ScaleX = _viewScale.ScaleY = View.Scale;
+        _viewOffset.X = View.OffsetX;
+        _viewOffset.Y = View.OffsetY;
+    }
+
     public new void Hide()
     {
         base.Hide();
+        View.Reset();
+        ApplyView();
         _background.Source = null; // 정지 화면은 더 보이지 않음. 비트맵 버퍼는 다음 켜기를 위해 유지
     }
 

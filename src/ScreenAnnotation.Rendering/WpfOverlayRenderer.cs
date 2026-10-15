@@ -50,8 +50,8 @@ public sealed class WpfOverlayRenderer : IOverlayRenderer
         var b = window.Monitor.Bounds;
         _l2 = new RenderTargetBitmap(b.Width, b.Height, 96, 96, PixelFormats.Pbgra32);
         _l2Image = new Image { Source = _l2, Stretch = Stretch.None, IsHitTestVisible = false, SnapsToDevicePixels = true };
-        window.Root.Children.Add(_l2Image);
-        window.Root.Children.Add(_l3);
+        window.Viewport.Children.Add(_l2Image);
+        window.Viewport.Children.Add(_l3);
     }
 
     public void Start() => InvalidateAll();
