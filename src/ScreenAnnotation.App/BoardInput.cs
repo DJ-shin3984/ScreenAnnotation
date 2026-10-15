@@ -328,6 +328,7 @@ public sealed class BoardInput : IDisposable
     {
         _textMode = true;
         _window.Cursor = System.Windows.Input.Cursors.IBeam;
+        _bar.SetTextMode(true, _tools);
         _hud.Update("텍스트", "클릭한 자리에 입력", (int)TextEditor.FontSizeFor(_tools.Width), _tools.Color);
     }
 
@@ -336,6 +337,7 @@ public sealed class BoardInput : IDisposable
         if (!_textMode) return;
         _textMode = false;
         _window.Cursor = System.Windows.Input.Cursors.Arrow;
+        _bar.SetTextMode(false, _tools);
         UpdateHud();
     }
 

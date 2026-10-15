@@ -22,7 +22,9 @@ public sealed class ToolbarControl : UserControl
 
     private static readonly Brush PanelBrush = Freeze(new SolidColorBrush(Color.FromArgb(0xCC, 0x20, 0x20, 0x20)));
     private static readonly Brush HoverBrush = Freeze(new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF)));
-    private static readonly Brush SelectedBrush = Freeze(new SolidColorBrush(Color.FromArgb(0x4D, 0xFF, 0xFF, 0xFF)));
+    private static readonly Brush SelectedBrush = Freeze(new SolidColorBrush(Color.FromArgb(0xFF, 0x00, 0x7A, 0xFF))); // 선택 = 파란 채움 (항상 보임)
+    private static readonly Brush SelectedHoverBrush = Freeze(new SolidColorBrush(Color.FromArgb(0xFF, 0x33, 0x95, 0xFF)));
+    private static readonly HashSet<Border> Selected = [];
     private static readonly Brush CloseHoverBrush = Freeze(new SolidColorBrush(Color.FromArgb(0xAA, 0xE0, 0x30, 0x30)));
 
     private readonly Dictionary<ToolbarAction, Border> _buttons = [];
@@ -105,7 +107,7 @@ public sealed class ToolbarControl : UserControl
             Tool.Shape => ToolbarAction.Shape,
             _ => ToolbarAction.Eraser,
         };
-        foreach (var (a, b) in _buttons) b.Background = a == SelectedAction ? SelectedBrush : Brushes.Transparent;
+        foreach (var (a, b) in _buttons) SetSelected(b, a == SelectedAction);
 
         SelectedColor = RadialItems.ColorKeys.ToList().IndexOf(tools.Color) + 1;
         for (var i = 0; i < _colors.Count; i++) _colors[i].Ring.Visibility = i + 1 == SelectedColor ? Visibility.Visible : Visibility.Collapsed;
@@ -167,10 +169,23 @@ public sealed class ToolbarControl : UserControl
             Background = Brushes.Transparent, Cursor = Cursors.Hand, ToolTip = Tip(tip), Focusable = false,
             Child = new Path { Data = icon, Stroke = Brushes.White, StrokeThickness = 2, Width = 24, Height = 24, Stretch = Stretch.None, StrokeLineJoin = PenLineJoin.Round, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false },
         };
-        var normal = b.Background;
-        b.MouseEnter += (_, _) => { normal = b.Background; b.Background = HoverBrush; };
-        b.MouseLeave += (_, _) => b.Background = normal;
+        // 선택 상태는 별도 집합으로 기억: 호버 중 선택이 바뀌어도 떠날 때 올바른 배경으로 돌아간다
+        b.MouseEnter += (_, _) => b.Background = Selected.Contains(b) ? SelectedHoverBrush : HoverBrush;
+        b.MouseLeave += (_, _) => b.Background = Selected.Contains(b) ? SelectedBrush : Brushes.Transparent;
         return b;
+    }
+
+    private static void SetSelected(Border b, bool on)
+    {
+        if (on) Selected.Add(b); else Selected.Remove(b);
+        b.Background = on ? (b.IsMouseOver ? SelectedHoverBrush : SelectedBrush) : (b.IsMouseOver ? HoverBrush : Brushes.Transparent);
+    }
+
+    /// <summary>텍스트 모드(ToolState 밖의 상태)를 활성으로 표시. 끄면 Sync가 준 선택으로 돌아간다.</summary>
+    public void SetTextMode(bool on, ToolState tools)
+    {
+        if (on) { SelectedAction = ToolbarAction.Text; foreach (var (a, b) in _buttons) SetSelected(b, a == ToolbarAction.Text); }
+        else Sync(tools);
     }
 
     private Border ColorDot(int number)
