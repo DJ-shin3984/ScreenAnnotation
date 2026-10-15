@@ -127,6 +127,9 @@ public sealed class BoardSession(
         {
             _frames.Clear();
             foreach (var f in frames) _frames[f.Monitor.Key] = f;
+            holder.Frames = _frames;
+            holder.RendererOf = w => _boards.TryGetValue(w, out var b) ? b.Renderer : null;
+            holder.FlashOf = w => _boards.TryGetValue(w, out var b) ? b.Input.Flash : null;
             overlay.ShowAll(frames);
             foreach (var w in overlay.Windows)
             {

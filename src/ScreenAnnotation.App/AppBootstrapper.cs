@@ -37,6 +37,7 @@ public static class AppBootstrapper
         services.AddSingleton<IWindowSnapshotService, WindowSnapshotService>();
         services.AddSingleton<IUiaElementLocator, UiaElementLocator>();
         services.AddSingleton<IOcrService, WindowsMediaOcrService>();
+        services.AddSingleton<IElementDetector, ElementDetector>();
         services.AddSingleton<StaticHeartbeatSource>();
         services.AddSingleton<IHeartbeatSource>(sp => sp.GetRequiredService<StaticHeartbeatSource>());
         services.AddSingleton<HeartbeatClient>();

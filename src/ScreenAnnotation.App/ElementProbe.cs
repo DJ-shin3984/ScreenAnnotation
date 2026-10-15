@@ -18,6 +18,7 @@ using ScreenAnnotation.Core.Capture;
 using ScreenAnnotation.Core.Monitors;
 using ScreenAnnotation.Core.Recognition;
 using ScreenAnnotation.Rendering;
+using ScreenAnnotation.Recognition;
 
 namespace ScreenAnnotation.App;
 
@@ -54,6 +55,10 @@ public sealed class ElementProbe
 
     private readonly Dictionary<OverlayWindow, Board> _boards = [];
     private bool _busy;
+    private Point _ctrlPress;
+    private bool _ctrlPressed;
+    private bool _regionActive;
+    private readonly IOcrService _ocr;
 
     // 선택 상태 (한 번에 하나)
     private OverlayWindow? _selWindow;
@@ -71,8 +76,9 @@ public sealed class ElementProbe
     private RectPx _dragOrigin;
     private int _replacesInDrag;
 
-    public ElementProbe(IElementDetector detector, ModeHolder mode, HistoryManager history, ILogger<ElementProbe> log)
+    public ElementProbe(IElementDetector detector, IOcrService ocr, ModeHolder mode, HistoryManager history, ILogger<ElementProbe> log)
     {
+        _ocr = ocr;
         _detector = detector; _mode = mode; _history = history; _log = log;
         _current = this;
     }
@@ -140,6 +146,9 @@ public sealed class ElementProbe
 
         if (!Ctrl || _mode.Snapshot is not { } snap || _busy) return;
         e.Handled = true;
+        _ctrlPress = p;
+        _ctrlPressed = true;
+        _regionActive = false;
         var g = Global(w, p);
         var frame = FrameOf(w);
 
@@ -182,6 +191,19 @@ public sealed class ElementProbe
             return;
         }
 
+        // Ctrl+드래그: 영역 OCR → 글자 복사 (12px 이상 움직이면 요소 선택 대신 영역 선택)
+        if (_ctrlPressed && Ctrl && e.LeftButton == MouseButtonState.Pressed)
+        {
+            var r = RegionOf(_ctrlPress, p);
+            if (_regionActive || r.Width > 12 || r.Height > 12)
+            {
+                if (!_regionActive) { _regionActive = true; Deselect(); }
+                Place(w, b.Preview, new RectPx(r.X + w.Monitor.Bounds.X, r.Y + w.Monitor.Bounds.Y, r.Width, r.Height));
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (!Ctrl || _sel is not null) { if (!Ctrl) b.Preview.Visibility = Visibility.Collapsed; return; }
         if (_busy || _mode.Snapshot is not { } snap) return;
         _busy = true;
@@ -200,6 +222,18 @@ public sealed class ElementProbe
 
     private void OnUp(OverlayWindow w, MouseButtonEventArgs e)
     {
+        if (_ctrlPressed)
+        {
+            _ctrlPressed = false;
+            if (_regionActive && _boards.TryGetValue(w, out var rb))
+            {
+                _regionActive = false;
+                rb.Preview.Visibility = Visibility.Collapsed;
+                e.Handled = true;
+                _ = RegionOcrAsync(w, RegionOf(_ctrlPress, e.GetPosition(w.Viewport)));
+                return;
+            }
+        }
         if (_drag == Drag.None || _selWindow != w || _sel is null) return;
         e.Handled = true;
         w.ReleaseMouseCapture();
@@ -367,6 +401,25 @@ public sealed class ElementProbe
         return -1;
     }
 
+    private static RectPx RegionOf(Point a, Point b) =>
+        new((int)Math.Min(a.X, b.X), (int)Math.Min(a.Y, b.Y), (int)Math.Abs(b.X - a.X), (int)Math.Abs(b.Y - a.Y));
+
+    private async Task RegionOcrAsync(OverlayWindow w, RectPx regionLocal)
+    {
+        var flash = _mode.FlashOf?.Invoke(w);
+        if (FrameOf(w) is not { } frame) return;
+        if (!_ocr.IsAvailable) { flash?.Invoke(_ocr.UnavailableReason ?? "OCR 사용 불가"); return; }
+        try
+        {
+            var text = await RegionOcr.CopyTextAsync(_ocr, frame, regionLocal, CancellationToken.None);
+            if (text.Length == 0) { flash?.Invoke("글자 없음"); return; }
+            Clipboard.SetText(text);
+            flash?.Invoke("글자 복사됨");
+            _log.LogInformation("영역 OCR {Region}: {Chars}자", regionLocal, text.Length);
+        }
+        catch (Exception ex) { _log.LogWarning(ex, "영역 OCR 실패"); flash?.Invoke("OCR 실패"); }
+    }
+
     private static void Place(OverlayWindow w, Rectangle r, RectPx? global)
     {
         if (global is not { } b) { r.Visibility = Visibility.Collapsed; return; }
@@ -416,6 +469,8 @@ public sealed class ModeHolder
 
     /// <summary>모니터 Key → 정지 화면. BoardSession의 _frames 사전을 그대로 넘긴다.</summary>
     public IReadOnlyDictionary<string, CapturedFrame>? Frames { get; set; }
+    /// <summary>창별 HUD 메시지 표시 (BoardInput.Flash). BoardSession이 연결.</summary>
+    public Func<OverlayWindow, Action<string>?>? FlashOf { get; set; }
 
     /// <summary>창 → 그 창의 렌더러 (요소 이동 후 L2 재합성용). BoardSession이 넣는다.</summary>
     public Func<OverlayWindow, IOverlayRenderer?>? RendererOf { get; set; }

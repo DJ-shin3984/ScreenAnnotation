@@ -1,3 +1,4 @@
+using System.IO;
 using ScreenAnnotation.Core.Monitors;
 using ScreenAnnotation.Recognition.Dataset;
 using Xunit.Abstractions;
