@@ -87,12 +87,7 @@ public sealed class WpfOverlayRenderer : IOverlayRenderer
         var sw = Stopwatch.StartNew();
         using (var dc = _l3.Visual.RenderOpen())
         {
-            foreach (var s in Ephemeral.Strokes)
-            {
-                dc.PushOpacity(s.Opacity);
-                dc.DrawGeometry(null, Pen(s.Color, s.Width, round: true), StrokeBuilder.ToGeometry(s.Points));
-                dc.Pop();
-            }
+            foreach (var s in Ephemeral.Strokes) DrawEphemeral(dc, s);
             if (_liveStroke is { } ls)
             {
                 var highlighter = ls.Kind != StrokeKind.Pen;
@@ -145,6 +140,14 @@ public sealed class WpfOverlayRenderer : IOverlayRenderer
         Laser.Prune(now);
         if (changed || Laser.Samples.Count != laserBefore) RedrawL3();
         else if (Ephemeral.Strokes.Count == 0 && Laser.Samples.Count == 0) EnsureTicking();
+    }
+
+    /// <summary>사라지는 펜 획 하나를 현재 불투명도로 그린다. 내보내기(T50)도 같은 코드를 쓴다.</summary>
+    public static void DrawEphemeral(DrawingContext dc, EphemeralStrokes.Stroke s)
+    {
+        dc.PushOpacity(s.Opacity);
+        dc.DrawGeometry(null, Pen(s.Color, s.Width, round: true), StrokeBuilder.ToGeometry(s.Points));
+        dc.Pop();
     }
 
     /// <summary>확정 Annotation 하나를 그린다. 내보내기(T50)도 같은 코드를 쓴다.</summary>
