@@ -28,3 +28,5 @@ Windows 11 화면 판서 앱. 전체 기획·설계는 계획서(https://claude.
 - dotnet build ScreenAnnotation.sln
 - dotnet test
 - dotnet run --project src/ScreenAnnotation.App
+- 배포용 exe: `build/publish.ps1` → dist/ScreenAnnotation.exe (바탕화면 바로가기 갱신). 설치 프로그램: `build/make-installer.ps1`
+- 테스트 훅: `ScreenAnnotation.exe --toggle` 은 실행 중인 인스턴스에 켜기/끄기를 보낸다 (합성 키 입력이 막힌 환경용)
