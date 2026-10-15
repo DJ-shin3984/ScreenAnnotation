@@ -51,6 +51,7 @@ public partial class App : System.Windows.Application
         tray.AddItem("창 목록 로그", () => _services.GetRequiredService<IWindowSnapshotService>().Take());
         tray.AddItem("UI 스레드 정지 (디버그)", () => Thread.Sleep(10000));
         tray.Show();
+        if (FirstRunWindow.ShouldShow()) new FirstRunWindow().Show();
         _services.GetRequiredService<HeartbeatClient>().Start(SynchronizationContext.Current!);
 
         var settings = _services.GetRequiredService<Settings>();
