@@ -9,6 +9,7 @@ using ScreenAnnotation.Core.Capture;
 using ScreenAnnotation.Core.Monitors;
 using ScreenAnnotation.Rendering;
 using ScreenAnnotation.Windows.Capture;
+using ScreenAnnotation.Windows.Input;
 using ScreenAnnotation.Core.Settings;
 using ScreenAnnotation.Core.Windows;
 using ScreenAnnotation.Windows.Watchdog;
@@ -26,11 +27,20 @@ public partial class App : System.Windows.Application
         _mutex = new Mutex(initiallyOwned: true, MutexName, out var createdNew);
         if (!createdNew)
         {
+            // 두 번째 실행: `--toggle`이면 실행 중인 인스턴스에 켜기/끄기만 전달하고 종료
+            if (e.Args.Contains("--toggle")) HotkeyService.PostToggle();
             Shutdown();
             return;
         }
 
         _services = AppBootstrapper.Build();
+        var appLog = _services.GetRequiredService<ILogger<App>>();
+        DispatcherUnhandledException += (_, ex) =>
+        {
+            appLog.LogError(ex.Exception, "처리되지 않은 예외");
+            ex.Handled = true; // 앱을 죽이지 않는다. 보드가 켜져 있으면 안전하게 끈다
+            _services?.GetRequiredService<BoardSession>().Stop();
+        };
         _services.GetRequiredService<ILogger<App>>().LogInformation("ScreenAnnotation started");
         _services.GetRequiredService<IMonitorService>(); // UI 스레드에서 생성: 메시지 창 + 모니터 목록 로그
         var tray = _services.GetRequiredService<TrayController>();

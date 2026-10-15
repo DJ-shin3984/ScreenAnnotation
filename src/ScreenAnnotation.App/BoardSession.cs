@@ -57,6 +57,7 @@ public sealed class BoardSession(
     /// <summary>UI 스레드에서 호출.</summary>
     public async Task OnHotkeyAsync()
     {
+        log.LogInformation("핫키 수신 mode={Mode}", mode.Mode);
         switch (mode.OnHotkey())
         {
             case HotkeyAction.Start: await StartAsync(); break;

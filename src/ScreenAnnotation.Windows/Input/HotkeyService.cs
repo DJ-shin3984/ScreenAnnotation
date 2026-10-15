@@ -57,6 +57,14 @@ public sealed unsafe class HotkeyService : IHotkeyService, IDisposable
         return true;
     }
 
+    /// <summary>실행 중인 인스턴스의 핫키 창에 WM_HOTKEY를 보낸다 (`--toggle` 인자, 테스트·스크립트용). 못 찾으면 false.</summary>
+    public static bool PostToggle()
+    {
+        var hwnd = FindWindowEx(HWND.HWND_MESSAGE, default, ClassName, null);
+        if (hwnd.IsNull) return false;
+        return PostMessage(hwnd, WM_HOTKEY, new WPARAM((nuint)HotkeyId), default);
+    }
+
     public void Unregister()
     {
         if (!_registered) return;
@@ -100,6 +108,7 @@ public sealed unsafe class HotkeyService : IHotkeyService, IDisposable
     {
         if (msg == WM_HOTKEY && (int)wParam.Value == HotkeyId)
         {
+            _instance?._logger.LogDebug("WM_HOTKEY");
             _instance?.HotkeyPressed?.Invoke(_instance, EventArgs.Empty);
             return (LRESULT)0;
         }
