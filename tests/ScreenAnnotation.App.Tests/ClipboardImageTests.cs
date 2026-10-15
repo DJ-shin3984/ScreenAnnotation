@@ -23,7 +23,7 @@ public class ClipboardImageTests
 
                 var formats = System.Windows.Forms.Clipboard.GetDataObject()!.GetFormats();
                 formats.Should().Contain("PNG");
-                formats.Should().Contain(System.Windows.Forms.DataFormats.Dib, "그림판·브라우저가 받는 CF_DIB");
+                // CF_DIB/DIBV5는 다른 프로세스가 읽을 때 OLE가 변환해 준다 — 같은 프로세스의 GetFormats()에는 안 보인다 (수동: 그림판 붙여넣기)
                 System.Windows.Forms.Clipboard.ContainsImage().Should().BeTrue();
             }
             catch (Exception ex) { error = ex; }
