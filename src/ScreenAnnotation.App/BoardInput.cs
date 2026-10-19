@@ -362,7 +362,10 @@ public sealed class BoardInput : IDisposable
         if (Suspended) { e.Handled = true; return; }
         if (_dragging || Ctrl) return;
         e.Handled = true;
-        _menu.Open(ScreenPos(e), _tools.Tool == Tool.Shape ? RadialItems.Shapes() : RadialItems.Colors(), Host);
+        if (_tools.Tool == Tool.Shape)
+            _menu.Open(ScreenPos(e), RadialItems.Shapes(), Host, RadialItems.Colors()); // 안쪽 도형, 바깥 색
+        else
+            _menu.Open(ScreenPos(e), RadialItems.Colors(), Host);
     }
 
     private void OnRightUp(object sender, MouseButtonEventArgs e)

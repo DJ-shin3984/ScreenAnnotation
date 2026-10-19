@@ -18,6 +18,9 @@ public sealed class RadialMenu : Canvas
     private const int ShortClickMs = 250;
 
     private readonly List<(RadialItem Item, Grid Visual, Point Center)> _slots = [];
+    private readonly List<(int Ring, int Index, int Count)> _slotPos = []; // 링(0 안/1 밖)·링 안 순서
+    public const double OuterRadius = 126;
+    private bool _hasOuter;
     private readonly Stopwatch _openedAt = new();
     private Point _center;
     private bool _clickMode;
@@ -34,29 +37,26 @@ public sealed class RadialMenu : Canvas
     public event Action<string>? Selected;
     public event Action? Cancelled;
 
-    public void Open(Point centerPx, IReadOnlyList<RadialItem> items, Size hostSize)
+    public void Open(Point centerPx, IReadOnlyList<RadialItem> items, Size hostSize) => Open(centerPx, items, hostSize, null);
+
+    /// <summary>안쪽 링 + (선택) 바깥 링. 도형 도구는 안쪽에 도형 6종, 바깥에 색 9개.</summary>
+    public void Open(Point centerPx, IReadOnlyList<RadialItem> items, Size hostSize, IReadOnlyList<RadialItem>? outerItems)
     {
         Children.Clear();
         _slots.Clear();
+        _slotPos.Clear();
         HighlightedIndex = null;
         _clickMode = false;
+        _hasOuter = outerItems is { Count: > 0 };
 
         // 링 전체가 호스트 안에 들어오도록 중심을 안쪽으로 민다.
-        var margin = Radius + SlotSize / 2;
+        var margin = (_hasOuter ? OuterRadius : Radius) + SlotSize / 2;
         _center = new Point(
             Math.Clamp(centerPx.X, margin, Math.Max(margin, hostSize.Width - margin)),
             Math.Clamp(centerPx.Y, margin, Math.Max(margin, hostSize.Height - margin)));
 
-        for (var i = 0; i < items.Count; i++)
-        {
-            var angle = AngleOf(i, items.Count);
-            var c = new Point(_center.X + Radius * Math.Cos(angle), _center.Y + Radius * Math.Sin(angle));
-            var visual = BuildSlot(items[i], i);
-            SetLeft(visual, c.X - SlotSize / 2);
-            SetTop(visual, c.Y - SlotSize / 2);
-            Children.Add(visual);
-            _slots.Add((items[i], visual, c));
-        }
+        AddRing(items, 0, Radius);
+        if (_hasOuter) AddRing(outerItems!, 1, OuterRadius);
 
         Visibility = Visibility.Visible;
         IsOpen = true;
@@ -99,15 +99,34 @@ public sealed class RadialMenu : Canvas
     /// <summary>슬롯 0은 위(-90°), 시계 방향.</summary>
     private static double AngleOf(int index, int count) => -Math.PI / 2 + 2 * Math.PI * index / count;
 
+    private void AddRing(IReadOnlyList<RadialItem> items, int ring, double radius)
+    {
+        for (var i = 0; i < items.Count; i++)
+        {
+            var angle = AngleOf(i, items.Count);
+            var c = new Point(_center.X + radius * Math.Cos(angle), _center.Y + radius * Math.Sin(angle));
+            var visual = BuildSlot(items[i], _slots.Count);
+            SetLeft(visual, c.X - SlotSize / 2);
+            SetTop(visual, c.Y - SlotSize / 2);
+            Children.Add(visual);
+            _slots.Add((items[i], visual, c));
+            _slotPos.Add((ring, i, items.Count));
+        }
+    }
+
     private int? IndexByDirection(Point p)
     {
         if (_slots.Count == 0 || Distance(p, _center) <= DeadZone) return null;
         var a = Math.Atan2(p.Y - _center.Y, p.X - _center.X);
+        // 바깥 링이 있으면 포인터 거리로 링을 고르고, 그 링 안에서 각도로 고른다
+        var ring = _hasOuter && Distance(p, _center) > (Radius + OuterRadius) / 2 ? 1 : 0;
         int? best = null;
         var bestDiff = double.MaxValue;
         for (var i = 0; i < _slots.Count; i++)
         {
-            var diff = Math.Abs(Math.Atan2(Math.Sin(a - AngleOf(i, _slots.Count)), Math.Cos(a - AngleOf(i, _slots.Count))));
+            var (r, idx, count) = _slotPos[i];
+            if (r != ring) continue;
+            var diff = Math.Abs(Math.Atan2(Math.Sin(a - AngleOf(idx, count)), Math.Cos(a - AngleOf(idx, count))));
             if (diff < bestDiff) { bestDiff = diff; best = i; }
         }
         return best;
